@@ -6,8 +6,8 @@ import torch
 import torch.optim as optim
 
 
-def main():
-    return None
+def main(opts):
+    print(opts)
 
 
 if __name__ == "__main__":

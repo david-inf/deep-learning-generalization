@@ -10,6 +10,7 @@ Supervised learning
 - Models: 
 - Optimization
     - Optimizer: 
+    - Scheduler: ?
     - Implicit regularization: 
 - Hyperparams opt: 
 

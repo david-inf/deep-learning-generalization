@@ -1,8 +1,14 @@
 
 from utils import N
+import numpy as np
+from tqdm import tqdm
 
 import torch
 
 
-# TODO: train loop
-# TODO: eval loop
+def train_loop():
+    return None
+
+
+def test():
+    return None
