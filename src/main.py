@@ -1,13 +1,16 @@
 from types import SimpleNamespace
 import argparse
 import yaml
+from ipdb import launch_ipdb_on_exception
 
 import torch
 import torch.optim as optim
 
+import wandb
+
 from cifar10 import CIFAR10, make_loader
 from models import Net
-from train import train_loop
+from train import train_loop, test
 
 
 def main(opts):
@@ -15,12 +18,12 @@ def main(opts):
     ## Load Dataset and create DataLoader
     # TODO: validation set
     trainset = CIFAR10(opts)
-    # testset = CIFAR10(opts, train=False)
+    testset = CIFAR10(opts, train=False)
     train_loader = make_loader(trainset, opts)
-    # test_loader = make_loader(testset, opts)
+    test_loader = make_loader(testset, opts)
 
     ## Define model
-    model = Net()
+    model = Net(opts.num_filters, opts.mlp_size, opts.num_classes)
     model = model.to(opts.device)
 
     ## Optimizer
@@ -32,7 +35,12 @@ def main(opts):
     )
 
     ## Training
-    # train_loop()
+    train_loop(opts, model, optimizer, train_loader)
+
+    ## Testing
+    test_acc = test(opts, model, test_loader)
+    print(f"Accuracy: {100.*test_acc:.1f}%")
+    wandb.log({"test acc": test_acc})
 
 
 if __name__ == "__main__":
@@ -48,4 +56,12 @@ if __name__ == "__main__":
     opts.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Device:", opts.device)
 
-    main(opts)
+    with launch_ipdb_on_exception():
+        wandb_config = dict(
+            project="deep-learning-project",
+            config=configs,
+            entity="david-inf-team",
+            name="simple-net"
+        )
+        with wandb.init(**wandb_config) as run:
+            main(opts)

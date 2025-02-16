@@ -1,10 +1,16 @@
+dataset: "CIFAR10"
 batch_size: 64
 num_workers: 0
+
+model_name: "Net"
+num_filters: 16
+mlp_size: 128
+num_classes: 10
 
 learning_rate: 0.001
 momentum: 0.9
 weight_decay: 0.0005
-num_epochs: 4
+num_epochs: 5
 
 log_every: 20
-batch_windows: 40
+batch_window: 40

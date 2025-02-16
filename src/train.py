@@ -1,10 +1,18 @@
 
+import os
 from utils import N
 import numpy as np
 from tqdm import tqdm
 
 import torch
 from torch.optim.lr_scheduler import ExponentialLR
+
+import wandb
+
+
+def save_checkpoint(opts, model, optimizer, epoch, loss):
+    # TODO: checkpointing
+    return None
 
 
 def test(opts, model, test_loader, msg="Test"):
@@ -13,7 +21,7 @@ def test(opts, model, test_loader, msg="Test"):
     correct = []
     with torch.no_grad():
         with tqdm(test_loader, unit="batch") as tepoch:
-            for (X, y) in test_loader:
+            for (X, y) in tepoch:
                 tepoch.set_description(msg)
 
                 X, y = X.to(opts.device), y.to(opts.device)
@@ -30,6 +38,8 @@ def train_loop(opts, model, optimizer, train_loader):
 
     criterion = torch.nn.CrossEntropyLoss()  # expects logits
 
+    wandb.watch(model, criterion, log="all", log_freq=10, log_graph=False)
+
     step = 0  # logging step
     for epoch in range(1, opts.num_epochs + 1):
         losses, accs = [], []
@@ -41,7 +51,7 @@ def train_loop(opts, model, optimizer, train_loader):
                 ## -----
                 # move data to device
                 X = X.to(opts.device)  # [N, C, W, H]
-                y = y.to(opts.device)  # [N, K]  one-hot
+                y = y.to(opts.device)  # [N, K] one-hot
                 # forward pass
                 optimizer.zero_grad()
                 out = model(X)  # logits: [N, K]
@@ -63,6 +73,13 @@ def train_loop(opts, model, optimizer, train_loader):
                     train_acc = np.mean(accs[-opts.batch_window:])
                     # TODO: validation
                     # val_acc = test(opts, model, val_loader, "Validation")
+                    # log to wandb
+                    wandb.log({
+                        "epoch": epoch,
+                        "train loss": train_loss,
+                        "train acc": train_acc
+                    }, step=step)
+                    # log to console
                     tepoch.set_postfix(loss=train_loss, acc=100.*train_acc)
                     tepoch.update()
                     step += 1

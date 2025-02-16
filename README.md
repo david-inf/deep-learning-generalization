@@ -4,7 +4,7 @@ A work on generalization in deep learning
 
 ### Details
 
-Supervised learning
+Supervised learning setting
 
 - Benchmark dataset: CIFAR10
 - Models: 
@@ -14,4 +14,8 @@ Supervised learning
     - Implicit regularization: 
 - Hyperparams opt: 
 
-# References
+### Experiments
+
+
+
+### References

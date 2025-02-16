@@ -110,6 +110,7 @@ if __name__ == "__main__":
 
     # Verify data
     mean, std = mean_std_channel(train_loader)
+    print("Base dataset")
     print("Mean:", mean)
     print("Std:", std)
 
@@ -120,5 +121,6 @@ if __name__ == "__main__":
     trainset = AugmentedCIFAR10(opts)
     train_loader = make_loader(trainset, opts)
     mean, std = mean_std_channel(train_loader)
+    print("Augmented dataset")
     print("Mean:", mean)
     print("Std:", std)
