@@ -4,18 +4,24 @@ A work on generalization in deep learning
 
 ### Details
 
-Supervised learning setting
+Supervised learning on CIFAR10
 
-- Benchmark dataset: CIFAR10
-- Models: 
+- Models:
+    - MLP
+    - (Simple-Net)
+    - AlexNet
+    - Inception-V3
 - Optimization
-    - Optimizer: 
-    - Scheduler: ?
-    - Implicit regularization: 
-- Hyperparams opt: 
+    - Optimizer: SGD
 
-### Experiments
+## Experiments
 
+Experiments for figure 1
+- Loss per training step varying randomization test
+- Time to overfit (reach zero-loss) againts label corruption for each network
+- Test error against label corruption for each network
 
+Experiments for figure 2
+- 
 
-### References
+## References

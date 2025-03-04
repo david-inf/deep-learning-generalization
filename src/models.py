@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from utils import visualize
 
 
+## *************************** ##
+
 class SimpleBlock(nn.Module):
     def __init__(self, in_channels, num_filters, kernel_size):
         super().__init__()
@@ -26,6 +28,7 @@ class SimpleBlock(nn.Module):
 
 
 class Net(nn.Module):
+    """ Simple Convolutional Neural Network """
     def __init__(self, num_filters, mlp_size, num_classes):
         super().__init__()
         self.blocks = nn.Sequential(
@@ -54,6 +57,7 @@ class Net(nn.Module):
         h = self.head(h)
         return h
 
+## *************************** ##
 
 def main():
 

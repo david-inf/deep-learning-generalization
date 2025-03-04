@@ -8,7 +8,7 @@ import torch.optim as optim
 
 import wandb
 
-from cifar10 import CIFAR10, make_loader
+from cifar10 import CIFAR10, CorruptedCIFAR10, make_loader
 from models import Net
 from train import train_loop, test
 
@@ -16,9 +16,8 @@ from train import train_loop, test
 def main(opts):
 
     ## Load Dataset and create DataLoader
-    # TODO: validation set
-    trainset = CIFAR10(opts)
-    testset = CIFAR10(opts, train=False)
+    trainset = CorruptedCIFAR10(opts)
+    testset = CorruptedCIFAR10(opts, train=False)
     train_loader = make_loader(trainset, opts)
     test_loader = make_loader(testset, opts)
 
@@ -40,7 +39,12 @@ def main(opts):
     ## Testing
     test_acc = test(opts, model, test_loader)
     print(f"Accuracy: {100.*test_acc:.1f}%")
-    wandb.log({"test acc": test_acc})
+    wandb.log({
+        "test acc": test_acc,
+        "test error": 1. - test_acc,
+        # "time to overfit":  # time to reach zero-loss
+        # "label corruption": opts.label_corruption_prob
+    })
 
 
 if __name__ == "__main__":

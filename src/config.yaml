@@ -2,6 +2,10 @@ dataset: "CIFAR10"
 batch_size: 64
 num_workers: 0
 
+label_corruption_prob: 0.2
+data_corruption_type: "none"
+data_corruption_prob: 0.
+
 model_name: "Net"
 num_filters: 16
 mlp_size: 128
