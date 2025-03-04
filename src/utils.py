@@ -94,3 +94,83 @@ def plot_data(imgs, labels, row_title=None, **imshow_kwargs):
 
 
 # TODO: plotting routines
+
+def plot_csv_data(csv_path, title=None, xlabel=None, ylabel=None,
+                  figsize=(10, 6), style=None, save_path=None):
+    """
+    Plot data from a CSV file using matplotlib.
+    
+    Parameters:
+    ----------
+    csv_path : str
+        Path to the CSV file.
+    title : str, optional
+        Plot title.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    figsize : tuple, optional
+        Figure size as (width, height) in inches.
+    style : str or list, optional
+        Line style for the plot (e.g., 'o-', '--', etc.) or list of styles for each y_column.
+    save_path : str, optional
+        Path to save the figure. If None, the figure is not saved.
+    
+    Returns:
+    -------
+    fig, ax : tuple
+        The figure and axis objects.
+    """
+    import pandas as pd
+    import numpy as np
+
+    # Read the CSV file
+    try:
+        df = pd.read_csv(csv_path)
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
+        return None, None
+
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=figsize)
+
+    x_data = df.index
+    y_columns = df.columns[1:]
+
+    # Plot each y column
+    for i, col in enumerate(y_columns):
+        # current_style = style[i] if isinstance(style, list) and i < len(style) else style
+        ax.plot(x_data, df[col], label=col)  # add current_style if needed
+    
+    # Add labels and title
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    else:
+        ax.set_xlabel(df.columns[0])
+
+    if ylabel:
+        ax.set_ylabel(ylabel)
+
+    if title:
+        ax.set_title(title)
+
+    # Add legend if multiple y columns
+    if len(y_columns) > 1:
+        ax.legend()
+
+    # Tight layout for better spacing
+    plt.tight_layout()
+    
+    # Save figure if save_path is provided
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+    
+    plt.show()
+    return fig, ax
+
+
+if __name__ == "__main__":
+    plot_csv_data(
+        "data.csv",
+        xlabel="step", ylabel="Training loss")
