@@ -1,6 +1,6 @@
 
 import os
-import time  # TODO: compute time-to-overfit, i.e. time to reach zero-loss
+import time
 from utils import N
 import numpy as np
 from tqdm import tqdm
@@ -26,6 +26,27 @@ def save_checkpoint(opts, model, optimizer, epoch, loss):
     torch.save(info, fname)
     wandb.save(fname)
     print(f"Saved checkpoint {fname}")
+
+
+def load_checkpoint(checkpoint_path, model, optimizer):
+    """ Load a model checkpoint to resume training """
+    if not os.path.isfile(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+
+    # load from given checkpoint path
+    print(f"Loading checkpoint: {checkpoint_path}")
+    checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+
+    # load weights and optimizer in those given
+    # this means that the inizialized model and optimizer are updated
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+    epoch = checkpoint.get("epoch", 0)  # last completed epoch
+    loss = checkpoint.get("loss", float("inf"))  # loss at checkpoint
+
+    print(f"Resuming from epoch {epoch}")
+    return epoch, loss
 
 
 def test(opts, model, test_loader, msg="Test"):
@@ -88,8 +109,6 @@ def train_loop(opts, model, optimizer, train_loader, val_loader):
                 if batch_idx % opts.log_every == 0:
                     train_loss = np.mean(losses[-opts.batch_window:])
                     train_acc = np.mean(accs[-opts.batch_window:])
-                    # TODO: validation
-                    # val_acc = test(opts, model, val_loader, "Validation")
                     # log to wandb
                     wandb.log({
                         "epoch": epoch,
@@ -121,9 +140,13 @@ def train_loop(opts, model, optimizer, train_loader, val_loader):
         
         scheduler.step()  # update learning rate
 
+        if epoch % opts.checkpoint_every == 0 or epoch == opts.num_epochs:
+            # save every checkpoint_every epochs and at the end
+            save_checkpoint(opts, model, optimizer, epoch, loss)
+
     print(f"Training completed in {time.time() - _start:.2f} seconds")
     # save final model
-    save_checkpoint(opts, model, optimizer, epoch, loss)
+    # save_checkpoint(opts, model, optimizer, epoch, loss)
     # test error at best model
     # test_acc = test(opts, model, val_loader, "Final Test")
     # print(f"Final test accuracy: {100.*test_acc:.1f}%")

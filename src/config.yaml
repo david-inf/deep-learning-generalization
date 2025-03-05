@@ -19,3 +19,4 @@ lr_decay: 0.95
 log_every: 20  # compute metrics after ... batches
 batch_window: 50  # use the previous ... batches to compute the metrics
 checkpoint_dir: "checkpoints/Net"
+checkpoint_every: 50  # save the model every ... epochs

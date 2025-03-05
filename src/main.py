@@ -60,6 +60,9 @@ def main(opts):
         weight_decay=opts.weight_decay
     )
 
+    ## Resume training
+    # if opts.resume_checkpoint:
+
     ## Training
     os.makedirs(opts.checkpoint_dir, exist_ok=True)  # output dir not tracked by git
     train_loop(opts, model, optimizer, train_loader, test_loader)
