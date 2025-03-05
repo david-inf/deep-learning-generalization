@@ -48,7 +48,7 @@ def run_experiments(exp_name, param_variations, output_dir):
     for values in itertools.product(*param_values):  # like a nested loop
         # Create a new configuration by updating the base config
         config = copy.deepcopy(base_config)
-        config["experiment_name"] = exp_name  # for grouping in wandb, check is it's useful
+        config["experiment_name"] = exp_name  # can be useful
         # Update with the current parameter combination
         param_desc = []
         for name, value in zip(param_names, values):

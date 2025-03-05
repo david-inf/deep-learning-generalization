@@ -1,3 +1,5 @@
+
+import os
 from types import SimpleNamespace
 import argparse
 import yaml
@@ -10,7 +12,7 @@ import wandb
 
 from cifar10 import CIFAR10, CorruptedCIFAR10, make_loader
 from models import Net, MLP
-from train import train_loop, test
+from train import train_loop, test, save_checkpoint
 
 
 def get_loaders(opts):
@@ -59,6 +61,7 @@ def main(opts):
     )
 
     ## Training
+    os.makedirs(opts.checkpoint_dir, exist_ok=True)  # output dir not tracked by git
     train_loop(opts, model, optimizer, train_loader, test_loader)
 
     ## Testing
@@ -100,3 +103,5 @@ if __name__ == "__main__":
         )
         with wandb.init(**wandb_config) as run:
             main(opts)
+
+    # TODO: resume training from a checkpoint and continue logging to the same wandb run

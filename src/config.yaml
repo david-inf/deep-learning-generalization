@@ -13,8 +13,9 @@ model_name: "Net"
 learning_rate: 0.01
 momentum: 0.9
 weight_decay: 0.
-num_epochs: 30
+num_epochs: 60
 lr_decay: 0.95
 
 log_every: 20  # compute metrics after ... batches
-batch_window: 40  # use the previous ... batches to compute the metrics
+batch_window: 50  # use the previous ... batches to compute the metrics
+checkpoint_dir: "checkpoints/Net"

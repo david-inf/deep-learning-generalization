@@ -12,8 +12,20 @@ import wandb
 
 
 def save_checkpoint(opts, model, optimizer, epoch, loss):
-    # TODO: checkpointing
-    return None
+    """ Save a model checkpoint so training can be resumed and also wandb logging """
+    fname = os.path.join(
+        opts.checkpoint_dir,
+        f"e_{epoch:03d}_{opts.model_name}_{opts.run_name}.pt"
+    )
+    info = dict(
+        model_state_dict=model.state_dict(),
+        optimizer_state_dict=optimizer.state_dict(),
+        epoch=epoch,
+        loss=loss
+    )
+    torch.save(info, fname)
+    wandb.save(fname)
+    print(f"Saved checkpoint {fname}")
 
 
 def test(opts, model, test_loader, msg="Test"):
@@ -90,7 +102,7 @@ def train_loop(opts, model, optimizer, train_loader, val_loader):
                     step += 1
 
                     # Check zero-loss condition
-                    if train_loss < 1e-6:
+                    if train_loss < 1e-2:
                         # time to reach interpolation treshold
                         # this will be updated at each zero-loss condition
                         # TODO: here or after training is ended but still at zero-loss?
@@ -110,3 +122,12 @@ def train_loop(opts, model, optimizer, train_loader, val_loader):
         scheduler.step()  # update learning rate
 
     print(f"Training completed in {time.time() - _start:.2f} seconds")
+    # save final model
+    save_checkpoint(opts, model, optimizer, epoch, loss)
+    # test error at best model
+    # test_acc = test(opts, model, val_loader, "Final Test")
+    # print(f"Final test accuracy: {100.*test_acc:.1f}%")
+    # wandb.log({
+    #     "final test acc": test_acc,
+    #     "final test error": 1. - test_acc
+    # })
