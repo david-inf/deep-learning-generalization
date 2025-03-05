@@ -15,6 +15,7 @@ classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
+# TODO: consider extending CIFAR10 directly
 class CIFAR10(Dataset):
     def __init__(self, opts=None, train=True, crop=True):
         self.opts = opts
@@ -108,7 +109,10 @@ class DataCorruptor:
         self.corruption_type = corruption_type
 
     def __call__(self, X):
-        # TODO: corruption types
+        if self.corruption_type == "shuffled pixels":
+            return self.shuffled_pixels(X)
+            # boh che faccio un metodo diverso per ciascuna corruption
+            # oppure metto tutte le routine qua?
         return X
 
 

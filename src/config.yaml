@@ -1,20 +1,20 @@
+run_name: "simple_net"
+
 dataset: "CIFAR10"
 batch_size: 64
 num_workers: 0
 
-label_corruption_prob: 0.2
+label_corruption_prob: 0.
 data_corruption_type: "none"
 data_corruption_prob: 0.
 
 model_name: "Net"
-num_filters: 16
-mlp_size: 128
-num_classes: 10
 
-learning_rate: 0.001
+learning_rate: 0.01
 momentum: 0.9
-weight_decay: 0.0005
-num_epochs: 5
+weight_decay: 0.
+num_epochs: 30
+lr_decay: 0.95
 
-log_every: 20
-batch_window: 40
+log_every: 20  # compute metrics after ... batches
+batch_window: 40  # use the previous ... batches to compute the metrics

@@ -59,12 +59,38 @@ class Net(nn.Module):
 
 ## *************************** ##
 
+class MLP(nn.Module):
+    def __init__(self, n_units=1, hidden_size=512):
+        super().__init__()
+
+        sizes = [28*28*3] + [hidden_size]*n_units + [10]
+        layers = []
+        for i in range(len(sizes) - 2):
+            layers.append(nn.Linear(sizes[i], sizes[i+1]))
+            layers.append(nn.ReLU(inplace=True))
+        self.mlp = nn.Sequential(*layers)
+        self.head = nn.Linear(sizes[-2], sizes[-1])
+
+    def forward(self, x):
+        h = x.flatten(1)
+        h = self.mlp(h)
+        h = self.head(h)
+        return h
+
+## *************************** ##
+
 def main():
 
     ## Visualize simple network
     model = Net(8, 128, 10)
     input_data = torch.randn(64, 3, 28, 28)
     visualize(model, "Net", input_data)
+
+    ## Visualize MLP
+    print()
+    model = MLP(2)
+    input_data = torch.randn(64, 3, 28, 28)
+    visualize(model, "MLP", input_data)
 
 
 if __name__ == "__main__":
