@@ -21,6 +21,12 @@ Experiments for figure 1
 - Time to overfit (reach zero-loss) againts label corruption for each network
 - Test error against label corruption for each network
 
+| Experiment | Results |
+| ---------- | ------- |
+| Learning curves. Fixed net with varying randomization in data. | plot |
+| Convergence slowdown. Time to overfit at different label corruption levels. | plot |
+| Generalization error growth. Same as the previous but we look for the test error. | plot |
+
 Experiments for figure 2
 - 
 
