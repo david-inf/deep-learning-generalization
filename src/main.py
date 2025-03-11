@@ -10,17 +10,17 @@ import torch.optim as optim
 
 import wandb
 
-from cifar10 import CIFAR10, CorruptedCIFAR10, make_loader
+from cifar10 import ModifiedCIFAR10, MakeDataLoaders
 from models import Net, MLP
 from train import train_loop, test, save_checkpoint
 
 
 def get_loaders(opts):
 
-    trainset = CorruptedCIFAR10(opts)
-    testset = CorruptedCIFAR10(opts, train=False)
-    train_loader = make_loader(trainset, opts)
-    test_loader = make_loader(testset, opts)
+    data = ModifiedCIFAR10(opts)
+    cifar10 = MakeDataLoaders(opts, data)
+    train_loader = cifar10.train_loader
+    test_loader = cifar10.test_loader
 
     return train_loader, test_loader
 
@@ -40,7 +40,6 @@ def get_model(opts):
     # a recent implementation uses ResNet
 
     model = model.to(opts.device)
-
     return model
 
 
@@ -103,6 +102,7 @@ if __name__ == "__main__":
             # tags=[opts.model_name],
             config=configs,
             # group=opts.experiment_name,  # TODO: group naming for organizing experiments
+            mode="offline"
         )
         with wandb.init(**wandb_config) as run:
             main(opts)
