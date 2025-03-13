@@ -119,10 +119,14 @@ if __name__ == "__main__":
 
     with launch_ipdb_on_exception():
         if not opts.experiment_key:
+            if opts.experiment_name:
+                exp_name = opts.experiment_name
+            else:
+                exp_name = f"{opts.model_name}_prob_{opts.label_corruption_prob};type_{opts.data_corruption_type}",
             experiment = start(
                 project_name=opts.comet_project,
                 experiment_config=ExperimentConfig(
-                    name=opts.experiment_name,
+                    name=exp_name
                 )
             )
         else:
@@ -130,9 +134,9 @@ if __name__ == "__main__":
                 project_name=opts.comet_project,
                 mode="get",
                 experiment_key=opts.experiment_key,
-                experiment_config=ExperimentConfig(
-                    name=opts.experiment_name
-                )
+                # experiment_config=ExperimentConfig(
+                #     name=opts.experiment_name
+                # )
             )
         experiment.log_parameters(
             configs

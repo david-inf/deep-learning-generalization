@@ -16,7 +16,7 @@ def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss):
     """ Save a model checkpoint so training can be resumed and also wandb logging """
     fname = os.path.join(
         opts.checkpoint_dir,
-        f"e_{epoch:03d}_{opts.model_name}_{opts.experiment_name}.pt"
+        f"e_{epoch:03d}_{opts.experiment_name}.pt"
     )
     info = dict(
         model_state_dict=model.state_dict(),
