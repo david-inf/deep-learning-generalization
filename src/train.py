@@ -5,30 +5,34 @@ from utils import N
 import numpy as np
 from tqdm import tqdm
 
+# logging to comet_ml
+from comet_ml.integration.pytorch import watch
+
 import torch
 from torch.optim.lr_scheduler import ExponentialLR
 
-import wandb
 
-
-def save_checkpoint(opts, model, optimizer, epoch, loss):
+def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss):
     """ Save a model checkpoint so training can be resumed and also wandb logging """
     fname = os.path.join(
         opts.checkpoint_dir,
-        f"e_{epoch:03d}_{opts.model_name}_{opts.run_name}.pt"
+        f"e_{epoch:03d}_{opts.model_name}_{opts.experiment_name}.pt"
     )
     info = dict(
         model_state_dict=model.state_dict(),
         optimizer_state_dict=optimizer.state_dict(),
+        scheduler_state_dict=scheduler.state_dict(),
         epoch=epoch,
+        step=step,
         loss=loss
     )
     torch.save(info, fname)
-    wandb.save(fname)
-    print(f"Saved checkpoint {fname}")
+    # TODO: get from comet_ml, no need, one can use log_model
+    # wandb.save(fname)
+    print(f"Saved checkpoint {fname} at epoch {epoch}, step {step}")
 
 
-def load_checkpoint(checkpoint_path, model, optimizer):
+def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
     """ Load a model checkpoint to resume training """
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
@@ -41,12 +45,14 @@ def load_checkpoint(checkpoint_path, model, optimizer):
     # this means that the inizialized model and optimizer are updated
     model.load_state_dict(checkpoint["model_state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
     epoch = checkpoint.get("epoch", 0)  # last completed epoch
+    step = checkpoint.get("step", 0)  # last logged step
     loss = checkpoint.get("loss", float("inf"))  # loss at checkpoint
 
-    print(f"Resuming from epoch {epoch}")
-    return epoch, loss
+    print(f"Resuming from epoch {epoch}, step {step}")
+    return epoch, step, loss
 
 
 def test(opts, model, test_loader, msg="Test"):
@@ -69,17 +75,36 @@ def test(opts, model, test_loader, msg="Test"):
     return np.mean(correct)
 
 
-def train_loop(opts, model, optimizer, train_loader, val_loader):
-    """ Training loop """
+def train_loop(opts, model, optimizer, train_loader, val_loader,
+               experiment, resume_from=None):
+    """
+    Training loop with with resuming routine. This accounts for training
+    ended before the number of epochs is reached or when one wants
+    to train the model further.
+    """
 
     criterion = torch.nn.CrossEntropyLoss()  # expects logits
     scheduler = ExponentialLR(optimizer, gamma=opts.lr_decay)
 
-    wandb.watch(model, criterion, log="all", log_freq=opts.log_every, log_graph=False)
+    start_epoch = 1  # last training epoch
+    step = 0
+    # TODO: is it possible to account for epoch not ended?
+    # the checkpoint is at some epoch
+    # but at comet_ml may be some steps more
+    if resume_from:
+        # load last epoch
+        last_epoch, last_step, _ = load_checkpoint(resume_from, model, optimizer, scheduler)
+        start_epoch += last_epoch
+        step += last_step
+        print(f"Resuming training from epoch {start_epoch}, step {step}")
+
+    # if not resume_from:
+        # this avoids duplicated graphs
+        # watch(model)
 
     _start = time.time()
-    step = 0  # logging step
-    for epoch in range(1, opts.num_epochs + 1):
+    for epoch in range(start_epoch, opts.num_epochs + 1):
+        experiment.log_current_epoch(epoch)
         losses, accs = [], []
         with tqdm(train_loader, unit="batch") as tepoch:
             for batch_idx, (X, y) in enumerate(tepoch):
@@ -109,11 +134,10 @@ def train_loop(opts, model, optimizer, train_loader, val_loader):
                 if batch_idx % opts.log_every == 0:
                     train_loss = np.mean(losses[-opts.batch_window:])
                     train_acc = np.mean(accs[-opts.batch_window:])
-                    # log to wandb
-                    wandb.log({
-                        "epoch": epoch,
+                    # log to comet_ml
+                    experiment.log_metrics({
                         "train loss": train_loss,
-                        "train acc": train_acc
+                        "train acc": train_acc,
                     }, step=step)
                     # log to console
                     tepoch.set_postfix(loss=train_loss, acc=100.*train_acc)
@@ -132,17 +156,19 @@ def train_loop(opts, model, optimizer, train_loader, val_loader):
                         # test error at interpolation treshold
                         test_acc = test(opts, model, val_loader, "Test")
                         print(f"Test accuracy: {100.*test_acc:.1f}%")
-                        wandb.log({
+                        # log to comet_ml
+                        experiment.log_metrics({
                             "test acc": test_acc,
                             "test error": 1. - test_acc,
-                            "time to overfit": _zero_loss_time
+                            "time to overfit": _zero_loss_time,
+                            "label corruption": opts.label_corruption_prob
                         })
-        
-        scheduler.step()  # update learning rate
+
+        scheduler.step()  # update learning rate at each epoch
 
         if epoch % opts.checkpoint_every == 0 or epoch == opts.num_epochs:
             # save every checkpoint_every epochs and at the end
-            save_checkpoint(opts, model, optimizer, epoch, loss)
+            save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss)
 
     print(f"Training completed in {time.time() - _start:.2f} seconds")
     # save final model

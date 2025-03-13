@@ -12,23 +12,23 @@ import numpy as np
 def run_experiments(exp_name, param_variations, output_dir):
     """
     Run multiple experiments by varying parameters from a base configuration.
-    Each experiment will be logged to wandb with its own unique name and config.
+    Each experiment will be logged to comet_ml with its own unique name and config.
     
     Parameters:
     -----------
     exp_name : str
-        Experiment name (learning curves, generalization error, etc.)
+        General experiment name (learning curves, generalization error, etc.)
     param_variations : dict
         Dictionary where keys are parameter names and values are lists of values to try
     output_dir : str
         Directory to store generated configuration files
     """
-    # Load the base configuration
+    # Load the base configuration to which apply the variations
     base_config_path = "config.yaml"
     with open(base_config_path, "r") as f:
         base_config = yaml.load(f, Loader=yaml.SafeLoader)  # dict
 
-    # Create output directory if it doesn't exist
+    # Create output directory for YAML if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)  # output dir not tracked by git
 
     # Generate all parameter combinations, these are based on the experiment being run
@@ -48,16 +48,15 @@ def run_experiments(exp_name, param_variations, output_dir):
     for values in itertools.product(*param_values):  # like a nested loop
         # Create a new configuration by updating the base config
         config = copy.deepcopy(base_config)
-        config["experiment_name"] = exp_name  # can be useful
         # Update with the current parameter combination
         param_desc = []
         for name, value in zip(param_names, values):
             config[name] = value
             param_desc.append(f"{name}={value}")
 
-        # Create a descriptive run name for wandb
-        # config["run_name"] = f"exp_{timestamp}_{experiment_count}_{'-'.join(param_desc)}"
-        config["run_name"] = config["model_name"]
+        # Create a descriptive run name for comet_ml; this would be a good naming
+        # config["experiment_name"] = f"{exp_name}_{experiment_count}_{'-'.join(param_desc)}"
+        config["experiment_name"] = exp_name
 
         # Save the configuration to a new file
         # config_filename = f"{output_dir}/config_{timestamp}_{experiment_count}.yaml"
@@ -69,13 +68,13 @@ def run_experiments(exp_name, param_variations, output_dir):
         experiment_count += 1
 
         print(f"\nRunning experiment {exp_name} [{experiment_count}/{total_experiments}]")
+        print(f"Experiment name: {config["experiment_name"]}")
         print(f"Parameters: {', '.join(param_desc)}")
-        print(f"Run name: {config['run_name']}")
         print(f"Config file: {config_filename}")
 
         # Run the experiment using the main.py script
         # This passes the generated config file to main.py
-        # By doing this a new wandb is created each time
+        # By doing this a new comet_ml experiment is created each time
         result = subprocess.run(["python", "main.py", "--config", config_filename])
 
         if result.returncode == 0:
@@ -89,39 +88,11 @@ if __name__ == "__main__":
     # in order to run experiments, we need to create different yaml files
     parser.add_argument("--output-dir", default="experiments", help="Directory for output config files")
 
-    # Allow specifying parameter variations directly from command line
-    # parser.add_argument('--label-corruption', type=str, help='Comma-separated label corruption probabilities')
-    # parser.add_argument('--model-name', type=str, help='Comma-separated model names')
-    # parser.add_argument('--num-epochs', type=str, help='Comma-separated number of epochs')
-
     # Specify which experiment to run
     parser.add_argument("--name", type=str, help="Name of the experiment to run", default="learn-curves",
                         choices=["learn-curves", "conv+err", "inception-reg"])
 
-    args = parser.parse_args()
-
-    # Build parameter variations from command line arguments
-    # param_variations = {}
-    # if args.label_corruption:
-    #     param_variations["label_corruption_prob"] = [float(x) for x in args.label_corruption.split(",")]
-    # if args.model_name:
-    #     param_variations["model_name"] = args.model_name.split(",")
-    # if args.num_epochs:
-    #     param_variations["num_epochs"] = [int(x) for x in args.num_epochs.split(",")]
-    
-    # If no variations specified, use default ones
-    # if not param_variations:
-    #     param_variations = {
-    #         "label_corruption_prob": [0.0, 0.1, 0.2, 0.3],
-    #         "learning_rate": [0.001, 0.01],
-    #     }
-    #     print("Using default parameter variations:")
-    #     for k, v in param_variations.items():
-    #         print(f"  {k}: {v}")
-    # else:
-    #     print("Using parameter variations:")
-    #     for k, v in param_variations.items():
-    #         print(f"  {k}: {v}")
+    args = parser.parse_args()  # get the arguments
 
     # TODO: si può fare meglio perché tanto la roba tra learning curve e err è a comune
     # Define parameter variations for each experiment
@@ -130,6 +101,7 @@ if __name__ == "__main__":
         # fixed model
         param_variations = {
             "label_corruption_prob": [0.0, 0.5, 1.0],
+            "data_corruption_type": ["none"],
             "model_name": ["Net"]
         }
 
@@ -143,4 +115,8 @@ if __name__ == "__main__":
 
     # Run the experiments
     run_experiments(args.name, param_variations, args.output_dir)
-    # At the end, all experiments will be mixed in wandb, but we can filter them by name
+    # At the end, all experiments will be mixed in comet_ml, but we can filter them by name
+
+# Questo si può fare molto più semplice per partire
+# definisco io a mano i parametri degli esperimenti e li lancio
+# uno alla volta con un for
