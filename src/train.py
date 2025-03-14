@@ -4,6 +4,8 @@ import time
 from utils import N
 import numpy as np
 from tqdm import tqdm
+import logging
+from rich.logging import RichHandler
 
 # logging to comet_ml
 from comet_ml.integration.pytorch import watch
@@ -12,7 +14,19 @@ import torch
 from torch.optim.lr_scheduler import ExponentialLR
 
 
-def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss):
+def get_logger():
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+    )
+    log = logging.getLogger("rich")
+    return log
+
+
+LOG = get_logger()
+
+
+def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss, runtime):
     """ Save a model checkpoint so training can be resumed and also wandb logging """
     fname = os.path.join(
         opts.checkpoint_dir,
@@ -22,14 +36,15 @@ def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss):
         model_state_dict=model.state_dict(),
         optimizer_state_dict=optimizer.state_dict(),
         scheduler_state_dict=scheduler.state_dict(),
-        epoch=epoch,
-        step=step,
-        loss=loss
+        epoch=epoch,  # last epoch
+        step=step,  # last step
+        loss=loss,  # last computed loss
+        runtime=runtime,  # duration of the run
     )
     torch.save(info, fname)
     # TODO: get from comet_ml, no need, one can use log_model
     # wandb.save(fname)
-    print(f"Saved checkpoint {fname} at epoch {epoch}, step {step}")
+    LOG.info(f"Saved checkpoint {fname} at epoch {epoch}, step {step}, runtime {runtime:.2f}s")
 
 
 def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
@@ -38,8 +53,8 @@ def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
         raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
 
     # load from given checkpoint path
-    print(f"Loading checkpoint: {checkpoint_path}")
-    checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+    LOG.info(f"Loading checkpoint: {checkpoint_path}")
+    checkpoint = torch.load(checkpoint_path)
 
     # load weights and optimizer in those given
     # this means that the inizialized model and optimizer are updated
@@ -50,9 +65,10 @@ def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
     epoch = checkpoint.get("epoch", 0)  # last completed epoch
     step = checkpoint.get("step", 0)  # last logged step
     loss = checkpoint.get("loss", float("inf"))  # loss at checkpoint
+    runtime = checkpoint.get("runtime", 0.)
 
-    print(f"Resuming from epoch {epoch}, step {step}")
-    return epoch, step, loss
+    # print(f"Resuming from epoch {epoch}, step {step}")
+    return epoch, step, loss, runtime
 
 
 def test(opts, model, test_loader, msg="Test"):
@@ -88,21 +104,21 @@ def train_loop(opts, model, optimizer, train_loader, val_loader,
 
     start_epoch = 1  # last training epoch
     step = 0
+    _start, runtime = time.time(), 0.  # previous duration in case of resuming
     # TODO: is it possible to account for epoch not ended?
     # the checkpoint is at some epoch
     # but at comet_ml may be some steps more
     if resume_from:
-        # load last epoch
-        last_epoch, last_step, _ = load_checkpoint(resume_from, model, optimizer, scheduler)
+        # load checkpoint
+        last_epoch, last_step, _, runtime = load_checkpoint(resume_from, model, optimizer, scheduler)
         start_epoch += last_epoch
         step += last_step
-        print(f"Resuming training from epoch {start_epoch}, step {step}")
+        LOG.info(f"Resuming training from epoch {start_epoch}, step {step}, runtime {runtime:.2}s")
 
     # if not resume_from:
         # this avoids duplicated graphs
         # watch(model)
 
-    _start = time.time()
     for epoch in range(start_epoch, opts.num_epochs + 1):
         experiment.log_current_epoch(epoch)
         losses, accs = [], []
@@ -121,7 +137,7 @@ def train_loop(opts, model, optimizer, train_loader, val_loader,
                 loss = criterion(out, y)
                 loss = torch.mean(loss)  # scalar value
                 # backward pass
-                loss.backward()  # backprop
+                loss.backward()   # backprop
                 optimizer.step()  # update model
                 # metrics
                 losses.append(N(loss))  # add loss for current batch
@@ -136,8 +152,8 @@ def train_loop(opts, model, optimizer, train_loader, val_loader,
                     train_acc = np.mean(accs[-opts.batch_window:])
                     # log to comet_ml
                     experiment.log_metrics({
-                        "train loss": train_loss,
-                        "train acc": train_acc,
+                        "loss": train_loss,
+                        "acc": train_acc,
                     }, step=step)
                     # log to console
                     tepoch.set_postfix(loss=train_loss, acc=100.*train_acc)
@@ -145,32 +161,36 @@ def train_loop(opts, model, optimizer, train_loader, val_loader,
                     step += 1
 
                     # Check zero-loss condition
-                    if train_loss < 1e-2:
-                        # time to reach interpolation treshold
-                        # this will be updated at each zero-loss condition
-                        # TODO: here or after training is ended but still at zero-loss?
-                        # TODO: otherwise I can compute test error at best model?
-                        _zero_loss_time = time.time() - _start  # seconds
-                        print(f"Zero-loss condition reached at epoch {epoch}")
-                        print(f"Time to zero-loss: {_zero_loss_time:.2f} seconds")
-                        # test error at interpolation treshold
-                        test_acc = test(opts, model, val_loader, "Test")
-                        print(f"Test accuracy: {100.*test_acc:.1f}%")
-                        # log to comet_ml
-                        experiment.log_metrics({
-                            "test acc": test_acc,
-                            "test error": 1. - test_acc,
-                            "time to overfit": _zero_loss_time,
-                            "label corruption": opts.label_corruption_prob
-                        })
+                    if train_loss < 1e-2 or train_acc > 0.9995:
+                        with experiment.validate():
+                            # time to reach interpolation treshold
+                            # this will be updated at each zero-loss condition
+                            # TODO: here or after training is ended but still at zero-loss?
+                            # TODO: otherwise I can compute test error at best model?
+                            _zero_loss_time = time.time() - _start  # seconds
+                            LOG.info(f"Zero-loss condition reached at epoch {epoch}")
+                            LOG.info(f"Time to zero-loss: {_zero_loss_time:.2f} seconds")
+                            # test error at interpolation treshold
+                            test_acc = test(opts, model, val_loader, "Test")
+                            LOG.info(f"Test accuracy: {100.*test_acc:.1f}%")
+                            # log to comet_ml
+                            experiment.log_metrics({
+                                "acc": test_acc,
+                                "error": 1. - test_acc,
+                                "time to overfit": _zero_loss_time,
+                                "label corruption": opts.label_corruption_prob
+                            })
 
         scheduler.step()  # update learning rate at each epoch
 
         if epoch % opts.checkpoint_every == 0 or epoch == opts.num_epochs:
             # save every checkpoint_every epochs and at the end
-            save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss)
+            ckp_runtime = runtime + time.time() - _start  # add duration of this run
+            save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss, ckp_runtime)
 
-    print(f"Training completed in {time.time() - _start:.2f} seconds")
+    runtime += time.time() - _start
+    LOG.info(f"Training completed in {runtime:.2f}s")
+    LOG.info(f"Total duration {runtime:.2f}s")
     # save final model
     # save_checkpoint(opts, model, optimizer, epoch, loss)
     # test error at best model
@@ -180,3 +200,4 @@ def train_loop(opts, model, optimizer, train_loader, val_loader,
     #     "final test acc": test_acc,
     #     "final test error": 1. - test_acc
     # })
+    experiment.log_metric("runtime", runtime)

@@ -46,11 +46,13 @@ def generate_config(param_seq):
 if __name__ == "__main__":
 
     param_seq = [
-        {"label_corruption_prob": 0.0, "data_corruption_type": "none"},
-        {"label_corruption_prob": 0.1, "data_corruption_type": "none"},
-        {"label_corruption_prob": 0.2, "data_corruption_type": "none"},
-        {"label_corruption_prob": 0.3, "data_corruption_type": "none"},
-        {"label_corruption_prob": 0.4, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.1, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.2, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.3, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.4, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 1.0, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "shuffled pixels"},
     ]
 
     with launch_ipdb_on_exception():

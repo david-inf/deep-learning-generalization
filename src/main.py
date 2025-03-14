@@ -69,6 +69,7 @@ def main(opts, experiment):
     ## Training & checkpointing
     os.makedirs(opts.checkpoint_dir, exist_ok=True)  # output dir not tracked by git
     with experiment.train():
+        print(f"Running {opts.experiment_name}")
         train_loop(
             opts, model, optimizer, train_loader, test_loader,
             experiment, opts.resume_checkpoint
@@ -100,22 +101,45 @@ def main(opts, experiment):
 
 if __name__ == "__main__":
     # This code runs a single experiment
-    parser = argparse.ArgumentParser(description="Runresume=opts.resume_checkpoint experiment with given configuration")
+    parser = argparse.ArgumentParser(description="Main script for running a single experiment and logging to comet_ml")
     # A default configuration is set, but one may provide a different one
     # A different configuration is provided each time when running multiple experiments
     parser.add_argument("--config", default="config.yaml", help="YAML Configuration file")
+    parser.add_argument("--epochs", default=10, type=int, help="Number of epochs, useful when resuming")
+    parser.add_argument("--checkpointing", default=None, help="Model checkpointing")
+    # parser.add_argument("--experiment_key", default=None, help="Resume an experiment")
+    parser.add_argument("--resume_from", default="last", help="Resume from checkpoint")
 
     args = parser.parse_args()  # arguments are attributes of args
     with open(args.config, "r") as f:  # args.config is the configuration file
         # more arguments but in a different object
         configs = yaml.load(f, Loader=yaml.SafeLoader)  # dict
 
-    # Device
-    configs["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Device:", configs["device"])
-
     # Create object for given configuration
     opts = SimpleNamespace(**configs)
+
+    # Update epochs
+    if args.epochs > opts.num_epochs:
+        opts.num_epochs = args.epochs
+        print(f"Updated number of epochs to {opts.num_epochs}")
+
+    # Model checkpointing
+    if isinstance(args.checkpointing, int):
+        opts.checkpoint_every = args.checkpointing
+    else:
+        opts.checkpoint_every = opts.num_epochs
+
+    # Resume from checkpoint
+    # if args.resume_from == "last":
+    #     # resume from the last checkpoint
+    #     path = f"checkpoints/{opts.model_name}/"
+    #     fname = f"e_"
+    #     opts.resume_checkpoint = f"_prob_{opts.label_corruption_prob};type_{opts.data_corruption_type}.pt"
+    #     print(f"Resuming from last checkpoint: {opts.resume_checkpoint}")
+
+    # Device
+    opts.device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Device:", opts.device)
 
     with launch_ipdb_on_exception():
         if not opts.experiment_key:
