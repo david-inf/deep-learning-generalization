@@ -16,6 +16,8 @@ Supervised learning on CIFAR10
 
 ## Experiments
 
+Experiments naming: `model_name`_`label_corruption_prob`_`data_corruption_type`
+
 Experiments for figure 1
 - Loss per training step varying randomization test
     - True labels: original dataset

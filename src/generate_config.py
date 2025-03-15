@@ -24,17 +24,20 @@ def generate_config(param_seq):
     for param_dict in param_seq:
         # Create a new configuration by updating the base config
         config = copy.deepcopy(base_config)
+
         # Update with the current parameter combination
         for key, value in param_dict.items():
             config[key] = value
+
         # Save the configuration to a YAML file
-        exp_name = f"{config['model_name']}_prob_{config['label_corruption_prob']};type_{config['data_corruption_type']}"
+        exp_name = f"{config['model_name']}_{config['label_corruption_prob']}_{config['data_corruption_type']}"
         config["experiment_name"] = exp_name
         fname = exp_name + ".yaml"
         output_path = os.path.join(output_dir, fname)
         with open(output_path, "w") as f:
             yaml.dump(config, f)
         exp_count += 1
+
         print(f"Generated config: {output_path}")
         print(f"Parameters: {param_dict}")
         print(f"Experiment name: {config["experiment_name"]}")
@@ -46,18 +49,21 @@ def generate_config(param_seq):
 if __name__ == "__main__":
 
     param_seq = [
-        # {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.1, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.2, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.3, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.4, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.5, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.6, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.7, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.8, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.9, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 1.0, "data_corruption_type": "none"},
-        # {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "shuffled pixels"},
+        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.1, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.2, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.3, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.4, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.5, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.6, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.7, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.8, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 0.9, "data_corruption_type": "none"},
+        {"model_name": "Net", "label_corruption_prob": 1.0, "data_corruption_type": "none"},
+
+        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "shuff_pix"},
+        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "rand_pix"},
+        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "gauss_pix"},
     ]
 
     with launch_ipdb_on_exception():

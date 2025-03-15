@@ -1,4 +1,7 @@
 
+import logging
+from rich.logging import RichHandler
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -12,6 +15,16 @@ def N(x):
     # send back to cpu
     # numpy ndarray
     return x.detach().cpu().numpy()
+
+
+def get_logger():
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+    )
+    log = logging.getLogger("rich")
+    return log
+LOG = get_logger()
 
 
 def visualize(model, model_name, input_data):

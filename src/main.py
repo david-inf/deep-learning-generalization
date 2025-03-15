@@ -19,6 +19,8 @@ from cifar10 import ModifiedCIFAR10, MakeDataLoaders
 from models import Net, MLP
 from train import train_loop, test
 
+from utils import LOG
+
 
 def get_loaders(opts):
 
@@ -48,12 +50,31 @@ def get_model(opts):
     return model
 
 
+def log_samples(experiment, data_loader, num_samples=4):
+    """ Log samples to comet_ml """
+    images, targets = next(iter(data_loader))
+
+    # log samples
+    for i in range(num_samples):
+        experiment.log_image(
+            images[i],
+            name=targets[i],
+            # image_channels="first"
+        )
+        # experiment.log_text(
+        #     f"true: {data_loader.dataset.classes[targets[j]]}, pred: {data_loader.dataset.classes[preds[j]]}",
+        #     name=f"sample_{i}_{j}_label"
+        # )
+
+
 def main(opts, experiment):
     # opts : SimpleNamespace
     # experiment : comet_ml.Experiment
 
     ## Load Dataset and create DataLoader
     train_loader, test_loader = get_loaders(opts)
+    # log few samples to comet_ml
+    log_samples(experiment, train_loader)
 
     ## Define model and optimizer
     model = get_model(opts)
@@ -64,12 +85,13 @@ def main(opts, experiment):
         weight_decay=opts.weight_decay
     )
 
-    ## TODO: Resume training from checkpoint
-
     ## Training & checkpointing
-    os.makedirs(opts.checkpoint_dir, exist_ok=True)  # output dir not tracked by git
+    ckp_dir = os.path.join("checkpoints", opts.model_name)
+    os.makedirs(ckp_dir, exist_ok=True)  # output dir not tracked by git
+    opts.checkpoint_dir = ckp_dir  # for saving and loading ckps
+
     with experiment.train():
-        print(f"Running {opts.experiment_name}")
+        LOG.info(f"Running {opts.experiment_name}")
         train_loop(
             opts, model, optimizer, train_loader, test_loader,
             experiment, opts.resume_checkpoint
@@ -80,14 +102,7 @@ def main(opts, experiment):
         test_acc = test(
             opts, model, test_loader
         )
-        print(f"Final test accuracy: {100.*test_acc:.1f}%")
-        # wandb.log({
-        #     "test acc": test_acc,
-        #     "test error": 1. - test_acc,
-        #     # "time to overfit":  # time to reach zero-loss
-        #     # "label corruption": opts.label_corruption_prob
-        # })
-        # TODO: log to comet_ml
+        LOG.info(f"Final test accuracy: {100.*test_acc:.1f}%")
         experiment.log_metrics({
             "acc": test_acc,
             "error": 1. - test_acc,
@@ -105,10 +120,10 @@ if __name__ == "__main__":
     # A default configuration is set, but one may provide a different one
     # A different configuration is provided each time when running multiple experiments
     parser.add_argument("--config", default="config.yaml", help="YAML Configuration file")
-    parser.add_argument("--epochs", default=10, type=int, help="Number of epochs, useful when resuming")
-    parser.add_argument("--checkpointing", default=None, help="Model checkpointing")
+    parser.add_argument("--epochs", default=10, type=int, help="Number of epochs, increase when resuming")
+    parser.add_argument("--ckping", type=int, default=None, help="Specify checkpointing frequency with epochs")
     # parser.add_argument("--experiment_key", default=None, help="Resume an experiment")
-    parser.add_argument("--resume_from", default="last", help="Resume from checkpoint")
+    # parser.add_argument("--resume_from", default="last", help="Resume from checkpoint (last or path)")
 
     args = parser.parse_args()  # arguments are attributes of args
     with open(args.config, "r") as f:  # args.config is the configuration file
@@ -120,16 +135,21 @@ if __name__ == "__main__":
 
     # Update epochs
     if args.epochs > opts.num_epochs:
+        prev = opts.num_epochs
         opts.num_epochs = args.epochs
-        print(f"Updated number of epochs to {opts.num_epochs}")
+        LOG.info(f"Updated number of epochs to {opts.num_epochs} from {prev}")
 
     # Model checkpointing
-    if isinstance(args.checkpointing, int):
-        opts.checkpoint_every = args.checkpointing
+    if args.ckping:
+        opts.checkpoint_every = args.ckping
+        LOG.info(f"Checkpointing every {opts.checkpoint_every} epochs")
     else:
         opts.checkpoint_every = opts.num_epochs
+        LOG.info(f"Checkpointing at the end of training")
 
     # Resume from checkpoint
+    # TODO: forse dovrei fare il dumping dello yaml quando aggiorno le epoche
+    # TODO: così da poter recuperare il numero precedente senza ricorrere al loading
     # if args.resume_from == "last":
     #     # resume from the last checkpoint
     #     path = f"checkpoints/{opts.model_name}/"
@@ -139,14 +159,14 @@ if __name__ == "__main__":
 
     # Device
     opts.device = "cuda" if torch.cuda.is_available() else "cpu"
-    print("Device:", opts.device)
+    LOG.info(f"Device: {opts.device}")
 
     with launch_ipdb_on_exception():
         if not opts.experiment_key:
             if opts.experiment_name:
                 exp_name = opts.experiment_name
             else:
-                exp_name = f"{opts.model_name}_prob_{opts.label_corruption_prob};type_{opts.data_corruption_type}",
+                exp_name = f"{opts.model_name}_{opts.label_corruption_prob}_{opts.data_corruption_type}",
             experiment = start(
                 project_name=opts.comet_project,
                 experiment_config=ExperimentConfig(
@@ -158,9 +178,6 @@ if __name__ == "__main__":
                 project_name=opts.comet_project,
                 mode="get",
                 experiment_key=opts.experiment_key,
-                # experiment_config=ExperimentConfig(
-                #     name=opts.experiment_name
-                # )
             )
         experiment.log_parameters(
             configs

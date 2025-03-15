@@ -4,8 +4,6 @@ import time
 from utils import N
 import numpy as np
 from tqdm import tqdm
-import logging
-from rich.logging import RichHandler
 
 # logging to comet_ml
 from comet_ml.integration.pytorch import watch
@@ -13,17 +11,7 @@ from comet_ml.integration.pytorch import watch
 import torch
 from torch.optim.lr_scheduler import ExponentialLR
 
-
-def get_logger():
-    FORMAT = "%(message)s"
-    logging.basicConfig(
-        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-    )
-    log = logging.getLogger("rich")
-    return log
-
-
-LOG = get_logger()
+from utils import LOG
 
 
 def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss, runtime):

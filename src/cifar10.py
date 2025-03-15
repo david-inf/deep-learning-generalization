@@ -53,9 +53,12 @@ class ModifiedCIFAR10(Dataset):
         self.y = self._one_hot(y)  # [60000, 10]
 
         # Corruption
+        assert opts.label_corruption_prob >= 0. and opts.label_corruption_prob <= 1.
         if opts.label_corruption_prob > 0.:
             self._corrupt_labels(opts.label_corruption_prob)
-        if opts.data_corruption_type in ("shuffled pixels", "random pixels", "gaussian"):
+
+        assert opts.data_corruption_type in ("none", "shuff_pix", "rand_pix", "gauss_pix")
+        if opts.data_corruption_type in ("shuff_pix", "rand_pix", "gauss_pix"):
             self._corrupt_data(opts.data_corruption_type)
 
     def _one_hot(self, y):
@@ -91,22 +94,19 @@ class ModifiedCIFAR10(Dataset):
 
         corruption (str): type of corruption
             "none": no corruption
-            "shuffled pixels": random permutation is chosed and applied
+            "shuff_pix": (shuffled pixels) random permutation is chosed and applied
                 to all images (train and test)
-            "random pixels": different random permutation is applied
+            "rand_pix": (random pixels) different random permutation is applied
                 to each image independently
-            "gaussian": gaussian distribution with matching mean
+            "gauss_pix": (gaussian pixels) gaussian distribution with matching mean
                 and variance to the original dataset is used to
                 generate random pixels for each image
         """
-        if corruption == "none":
-            return  # No corruption needed
-
         # Get shape information
         n_samples, n_channels, height, width = self.X.shape
         n_pixels = height * width
 
-        if corruption == "shuffled pixels":
+        if corruption == "shuff_pix":
             # Generate a single permutation for all images
             perm = torch.randperm(n_pixels)  # [H*W]
             flat_imgs = self.X.flatten(2)  # flattened imgs [B, C, H*W]
@@ -115,7 +115,7 @@ class ModifiedCIFAR10(Dataset):
             # go back to the original batch shape
             self.X = flat_imgs[:, :, perm].view(n_samples, n_channels, height, width)
 
-        elif corruption == "random pixels":
+        elif corruption == "rand_pix":
             # Generate a different permutation for each image
             perms = torch.stack([torch.randperm(n_pixels) for _ in range(n_samples)])  # [B, H*W]
             idx_perm = perms.unsqueeze(1).expand(-1, n_channels, -1)  # expand (copy) perm along channels and batch [B, C, H*W]
@@ -127,7 +127,7 @@ class ModifiedCIFAR10(Dataset):
             # gather rearranges in the (flattened) pixels dim according to perm_idx
             # self.X.flatten(2) and idx_perm must have the same shape
 
-        elif corruption == "gaussian":
+        elif corruption == "gauss_pix":
             # Generate random noise with the same mean and std as the original data
             noise = torch.randn_like(self.X)  # pure gaussian noise [B, C, H, W]
             # For broadcasting operations, we need to add dimensions
