@@ -16,7 +16,9 @@ import torch.optim as optim
 
 # my stuffs
 from cifar10 import ModifiedCIFAR10, MakeDataLoaders
-from models import Net, MLP
+from models.simple_mlp import Net, MLP
+from models.inception import InceptionSmall
+from models.alexnet import AlexNetSmall
 from train import train_loop, test
 
 from utils import LOG
@@ -40,10 +42,10 @@ def get_model(opts):
         model = MLP(1)
     elif opts.model_name == "MLP3":
         model = MLP(3)  # 3 hidden units
-    # elif opts.model_name == "AlexNet":
-    #     model = AlexNet()
-    # elif opts.model_name == "Inception":
-    #     model = Inception()
+    elif opts.model_name == "AlexNet":
+        model = AlexNetSmall()
+    elif opts.model_name == "Inception":
+        model = InceptionSmall()
     # a recent implementation uses ResNet
 
     model = model.to(opts.device)
@@ -71,10 +73,14 @@ def main(opts, experiment):
     # opts : SimpleNamespace
     # experiment : comet_ml.Experiment
 
+    ## Device
+    opts.device = "cuda" if torch.cuda.is_available() else "cpu"
+    LOG.info(f"Device: {opts.device}")
+
     ## Load Dataset and create DataLoader
     train_loader, test_loader = get_loaders(opts)
     # log few samples to comet_ml
-    log_samples(experiment, train_loader)
+    # log_samples(experiment, train_loader)
 
     ## Define model and optimizer
     model = get_model(opts)
@@ -157,10 +163,6 @@ if __name__ == "__main__":
     #     opts.resume_checkpoint = f"_prob_{opts.label_corruption_prob};type_{opts.data_corruption_type}.pt"
     #     print(f"Resuming from last checkpoint: {opts.resume_checkpoint}")
 
-    # Device
-    opts.device = "cuda" if torch.cuda.is_available() else "cpu"
-    LOG.info(f"Device: {opts.device}")
-
     with launch_ipdb_on_exception():
         if not opts.experiment_key:
             if opts.experiment_name:
@@ -179,9 +181,7 @@ if __name__ == "__main__":
                 mode="get",
                 experiment_key=opts.experiment_key,
             )
-        experiment.log_parameters(
-            configs
-        )
+        experiment.log_parameters(vars(opts))
         main(opts, experiment)
         experiment.end()
         # try resuming an experiment if experiment_key is provided

@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils import visualize
+from models_utils import visualize
 
 
 ## *************************** ##
@@ -78,6 +78,7 @@ class MLP(nn.Module):
         return h
 
 ## *************************** ##
+
 
 def main():
 
