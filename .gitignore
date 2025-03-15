@@ -166,3 +166,4 @@ src/prove.py
 /src/plots/plots_data
 /src/checkpoints
 /src/experiments
+/src/plots/figures

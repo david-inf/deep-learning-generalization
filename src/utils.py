@@ -94,7 +94,7 @@ def visualize(model, model_name, input_data):
 #     plt.show()
 
 
-def imshow(img):
+def imshow(img, save=None):
     # Denormalize the image
     # img = img * torch.tensor([0.2023, 0.1994, 0.2010])[:, None, None] + torch.tensor([0.4914, 0.4822, 0.4465])[:, None, None]
     img = img.clamp(0, 1)  # Clamp values to be in the [0, 1] range
@@ -102,8 +102,11 @@ def imshow(img):
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
     plt.axis("off")
-    plt.show()
 
+    if save:
+        plt.savefig(save)
+
+    # plt.show()
 
 # TODO: plotting routines
 

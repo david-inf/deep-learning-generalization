@@ -17,7 +17,7 @@ from torch.optim.lr_scheduler import ExponentialLR
 def get_logger():
     FORMAT = "%(message)s"
     logging.basicConfig(
-        level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
     )
     log = logging.getLogger("rich")
     return log
@@ -113,7 +113,7 @@ def train_loop(opts, model, optimizer, train_loader, val_loader,
         last_epoch, last_step, _, runtime = load_checkpoint(resume_from, model, optimizer, scheduler)
         start_epoch += last_epoch
         step += last_step
-        LOG.info(f"Resuming training from epoch {start_epoch}, step {step}, runtime {runtime:.2}s")
+        LOG.info(f"Resuming training from epoch {start_epoch}, step {step}, runtime {runtime:.2f}s")
 
     # if not resume_from:
         # this avoids duplicated graphs

@@ -18,8 +18,13 @@ Supervised learning on CIFAR10
 
 Experiments for figure 1
 - Loss per training step varying randomization test
-- Time to overfit (reach zero-loss) againts label corruption for each network
-- Test error against label corruption for each network
+    - True labels: original dataset
+    - Random labels: full dataset with random labels
+    - Shuffled pixels: fixed permutation for all images
+    - Random pixels: different permutation ofr each image
+    - Gaussian: random pixels according to gaussian with mean and std matching the dataset
+- Time to overfit (time to reach interpolation threshold) againts label corruption for each network
+- Test error (at interpolaton threshold) against label corruption for each network
 
 | Experiment | Results |
 | ---------- | ------- |

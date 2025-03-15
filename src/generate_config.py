@@ -51,6 +51,11 @@ if __name__ == "__main__":
         # {"model_name": "Net", "label_corruption_prob": 0.2, "data_corruption_type": "none"},
         # {"model_name": "Net", "label_corruption_prob": 0.3, "data_corruption_type": "none"},
         # {"model_name": "Net", "label_corruption_prob": 0.4, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.5, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.6, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.7, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.8, "data_corruption_type": "none"},
+        # {"model_name": "Net", "label_corruption_prob": 0.9, "data_corruption_type": "none"},
         # {"model_name": "Net", "label_corruption_prob": 1.0, "data_corruption_type": "none"},
         # {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "shuffled pixels"},
     ]

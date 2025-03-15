@@ -22,23 +22,15 @@ class ModifiedCIFAR10(Dataset):
         self.opts = opts
 
         # Get full CIFAR10 dataset, first separated
-        trainset = datasets.CIFAR10(  # (X, y) N=50000
-            root="./data",
-            train=True,
-            download=True
-        )
-        testset = datasets.CIFAR10(  # (X, y) N=10000
-            root="./data",
-            train=False,
-            download=True
-        )
+        # (X, y) train: N=50000 ; test: N=10000
+        trainset = datasets.CIFAR10(root="./data", train=True, download=True)
+        testset = datasets.CIFAR10(root="./data", train=False, download=True)
 
         # Combine train and test sets
         # so that corruption can be applied to both at the same time
-        X_train = trainset.data  # PIL Image, numpy array
-        y_train = trainset.targets  # int, list
-        X_test = testset.data  # PIL Image, numpy array
-        y_test = testset.targets  # int, list
+        # PIL Image <> numpy array ; int <> list
+        X_train, y_train = trainset.data, trainset.targets
+        X_test, y_test = testset.data, testset.targets
 
         X = np.vstack((X_train, X_test))  # [60000, 32, 32, 3]
         y = np.hstack((y_train, y_test))  # [60000]
@@ -50,11 +42,11 @@ class ModifiedCIFAR10(Dataset):
             self.X = self.X[:, :, margin:-margin, margin:-margin]
 
         # Data normalization
-        mean = torch.mean(self.X, dim=(0, 2, 3))
-        std = torch.std(self.X, dim=(0, 2, 3))
+        self.mean = torch.mean(self.X, dim=(0, 2, 3))  # original data mean
+        self.std = torch.std(self.X, dim=(0, 2, 3))  # original data std
         # Apply normalization to the data
         for c in range(3):  # For each channel
-            self.X[:, c, :, :] = (self.X[:, c, :, :] - mean[c]) / std[c]
+            self.X[:, c, :, :] = (self.X[:, c, :, :] - self.mean[c]) / self.std[c]
 
         # Target pre-processing -> one-hot encoding
         self.num_classes = len(np.unique(y))  # 10
@@ -97,16 +89,15 @@ class ModifiedCIFAR10(Dataset):
         """
         Corrupts all data with a given corruption type
 
-        Args:
-            corruption_type (str): type of corruption
-                "none": no corruption
-                "shuffled pixels": random permutation is chosed and applied
-                    to all images (train and test)
-                "random pixels": different random permutation is applied
-                    to each image independently
-                "gaussian": gaussian distribution with matching mean
-                    and variance to the original dataset is used to
-                    generate random pixels for each image
+        corruption (str): type of corruption
+            "none": no corruption
+            "shuffled pixels": random permutation is chosed and applied
+                to all images (train and test)
+            "random pixels": different random permutation is applied
+                to each image independently
+            "gaussian": gaussian distribution with matching mean
+                and variance to the original dataset is used to
+                generate random pixels for each image
         """
         if corruption == "none":
             return  # No corruption needed
@@ -117,15 +108,35 @@ class ModifiedCIFAR10(Dataset):
 
         if corruption == "shuffled pixels":
             # Generate a single permutation for all images
-            perm = torch.randperm(n_pixels)
-            # Apply the same permutation to all images across all channels
-            for c in range(n_channels):  # 3 channels
-                # Reshape to [n_samples, n_pixels]
-                flat_imgs = self.X[:, c, :, :].reshape(n_samples, n_pixels)
-                # Apply permutation to each image over all pixels
-                flat_imgs = flat_imgs[:, perm]
-                # Reshape back to original shape
-                self.X[:, c, :, :] = flat_imgs.reshape(n_samples, height, width)
+            perm = torch.randperm(n_pixels)  # [H*W]
+            flat_imgs = self.X.flatten(2)  # flattened imgs [B, C, H*W]
+            # Apply the same permutation to all images:
+            # apply permutation to the last dimension (pixels)
+            # go back to the original batch shape
+            self.X = flat_imgs[:, :, perm].view(n_samples, n_channels, height, width)
+
+        elif corruption == "random pixels":
+            # Generate a different permutation for each image
+            perms = torch.stack([torch.randperm(n_pixels) for _ in range(n_samples)])  # [B, H*W]
+            idx_perm = perms.unsqueeze(1).expand(-1, n_channels, -1)  # expand (copy) perm along channels and batch [B, C, H*W]
+            flat_imgs = self.X.flatten(2)  # flattened imgs [B, C, H*W]
+            # Apply the permutation to each image independently:
+            # rearranges pixels gather(2, ...) -> [B, C, H*W] following the permutation
+            # go back to the original batch shape
+            self.X = flat_imgs.gather(2, idx_perm).view(n_samples, n_channels, height, width)
+            # gather rearranges in the (flattened) pixels dim according to perm_idx
+            # self.X.flatten(2) and idx_perm must have the same shape
+
+        elif corruption == "gaussian":
+            # Generate random noise with the same mean and std as the original data
+            noise = torch.randn_like(self.X)  # pure gaussian noise [B, C, H, W]
+            # For broadcasting operations, we need to add dimensions
+            mean = self.mean.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)  # [C] -> [1, C, 1, 1]
+            std = self.std.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)  # [C] -> [1, C, 1, 1]
+            # Apply mean and std from original data (we have new data)
+            self.X = noise * std + mean  # [B, C, H, W]
+            # Scale to [0, 1]
+            self.X = torch.clamp(self.X, 0., 1.)
 
     def __len__(self):
         return self.X.shape[0]  # 60000
@@ -232,56 +243,89 @@ def main():
 
 
 def main_corruption():
-    # Hyperparams
+    # Original dataset
     config_orig = dict(
         batch_size=128, num_workers=0, label_corruption_prob=0.,
         data_corruption_type="none", test_size=0.2
     )
-    opts_orig = SimpleNamespace(**config_orig)
-    config_corrup = dict(
-        batch_size=128, num_workers=0, label_corruption_prob=0.2,
+    original_data = ModifiedCIFAR10(SimpleNamespace(**config_orig))
+    # Random labels
+    config_labels = dict(
+        batch_size=128, num_workers=0, label_corruption_prob=0.5,
+        data_corruption_type="none", test_size=0.2
+    )
+    # opts_labels = SimpleNamespace(**config_labels)
+    labels_data = ModifiedCIFAR10(SimpleNamespace(**config_labels))
+    # labels_cifar10 = MakeDataLoaders(opts_labels, labels_data)
+    # labels_loader = labels_cifar10.train_loader
+    # Shuffled pixels
+    config_shuff = dict(
+        batch_size=128, num_workers=0, label_corruption_prob=0.,
         data_corruption_type="shuffled pixels", test_size=0.2
     )
-    opts_corrup = SimpleNamespace(**config_corrup)
+    # opts_shuff = SimpleNamespace(**config_shuff)
+    shuff_data = ModifiedCIFAR10(SimpleNamespace(**config_shuff))
+    # shuff_cifar10 = MakeDataLoaders(opts_shuff, ModifiedCIFAR10(opts_shuff))
+    # shuff_loader = shuff_cifar10.train_loader
+    # Random pixels
+    config_rand = dict(
+        batch_size=128, num_workers=0, label_corruption_prob=0.,
+        data_corruption_type="random pixels", test_size=0.2
+    )
+    # opts_rand = SimpleNamespace(**config_rand)
+    rand_data = ModifiedCIFAR10(SimpleNamespace(**config_rand))
+    # rand_cifar10 = MakeDataLoaders(opts_rand, ModifiedCIFAR10(opts_rand))
+    # rand_loader = rand_cifar10.train_loader
+    # Gaussian pixels
+    config_gauss = dict(
+        batch_size=128, num_workers=0, label_corruption_prob=0.,
+        data_corruption_type="gaussian", test_size=0.2
+    )
+    # opts_gauss = SimpleNamespace(**config_gauss)
+    gauss_data = ModifiedCIFAR10(SimpleNamespace(**config_gauss))
+    # gauss_cifar10 = MakeDataLoaders(opts_gauss, ModifiedCIFAR10(opts_gauss))
+    # gauss_loader = gauss_cifar10.train_loader
 
-    # Get Dataset and DataLoader
-    original_data = ModifiedCIFAR10(opts_orig)
-    # original_cifar10 = MakeDataLoaders(opts_orig, original_data)
-    # original_train_loader = original_cifar10.train_loader
-    corrupted_data = ModifiedCIFAR10(opts_corrup)
-    corrupted_cifar10 = MakeDataLoaders(opts_corrup, corrupted_data)
-    corrupted_train_loader = corrupted_cifar10.train_loader
-
-    print("Verify corrupted data")
-    mean, std = mean_std_channel(corrupted_train_loader)
-    print("Corrupted dataset")
-    print("Mean:", mean)
-    print("Std:", std)
-
-    print("Check labels and images")
-    X, y = next(iter(corrupted_train_loader))
-    print("Data:", X.shape)
-    print("Targets:", y.shape)
+    ## ***** Labels corruption *****
+    # print("Check labels and images")
+    # X, y = next(iter(labels_loader))
+    # print("Data:", X.shape)
+    # print("Targets:", y.shape)
 
     print("Check original labels againts corrupted labels")
     confusion = np.zeros((10, 10), dtype=int)
     for i in range(1000):
         _, y = original_data[i]
-        _, y_corrupted = corrupted_data[i]
+        _, y_corrupted = labels_data[i]
         confusion[np.argmax(y).item(), np.argmax(y_corrupted).item()] += 1
     print(confusion)
     tot = confusion.sum()
     acc = confusion.trace() / tot
     print(f"Corruption rate: {1-acc:.2f}")
 
-    print("Plot original and corrupted images together along with labels")
+    import matplotlib.pyplot as plt
+    import os
+    dir = "plots/figures"
+    os.makedirs(dir, exist_ok=True)
+    ## ***** Shuffled pixels corruption *****
+    print("Shuffled pixels")
     imgs = 8
-    X_orig, y_orig = original_data[:imgs]
-    X_corrupted, y_corrupted = corrupted_data[:imgs]
-    print("Original labels:", [classes[np.argmax(y).item()] for y in y_orig])
-    print("Corrupted labels:", [classes[np.argmax(y).item()] for y in y_corrupted])
+    X_orig, _ = original_data[:imgs]
+    X_corrupted, _ = shuff_data[:imgs]
     grid = make_grid(torch.cat((X_orig, X_corrupted), dim=0), nrow=8)
-    imshow(grid)
+    imshow(grid, os.path.join(dir, "shuffled_pixels.png"))
+
+    ## ***** Random pixels corruption *****
+    print("Random pixels")
+    X_corrupted, _ = rand_data[:imgs]
+    grid = make_grid(torch.cat((X_orig, X_corrupted), dim=0), nrow=8)
+    imshow(grid, os.path.join(dir, "random_pixels.png"))
+
+    ## ***** Gaussian pixels corruption *****
+    print("Gaussian pixels")
+    X_corrupted, _ = gauss_data[:imgs]
+    grid = make_grid(torch.cat((X_orig, X_corrupted), dim=0), nrow=8)
+    imshow(grid, os.path.join(dir, "gaussian_pixels.png"))
 
 
 if __name__ == "__main__":
