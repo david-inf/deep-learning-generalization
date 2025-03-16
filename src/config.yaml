@@ -2,8 +2,13 @@
 # first options are common, mostly, between experiments
 # so one can try to merge common options with the specific ones
 
+# seed ensures proper reproducibility, especially when resuming
+seed: 42
+# - data randomization
+# - dataset splitting
+
 test_size: 0.2  # train-test split
-batch_size: 64
+batch_size: 128
 num_workers: 0  # 0 when no augmentations are used
 
 learning_rate: 0.01
@@ -20,7 +25,7 @@ comet_project: "deep-learning-generalization"
 
 
 model_name: "Net"
-num_epochs: 10
+num_epochs: 20
 
 label_corruption_prob: 0.  # start with original labels
 data_corruption_type: "none"  # start with original data
@@ -29,6 +34,10 @@ resume_checkpoint: null
 
 experiment_name: null
 experiment_key: null
+
+# flag to indicate if the interpolation was reached
+# crucial when resuming, to avoid overwriting the results
+interp_reached: false
 
 # when resuming make sure about to update:
 # num_epochs

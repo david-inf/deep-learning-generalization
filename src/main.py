@@ -8,11 +8,12 @@ from ipdb import launch_ipdb_on_exception
 
 # logging to Comet stuffs
 from comet_ml import start, ExperimentConfig
-from comet_ml.integration.pytorch import log_model
+# from comet_ml.integration.pytorch import log_model
 
 # pytorch stuffs
+import random
+import numpy as np
 import torch
-import torch.optim as optim
 
 # my stuffs
 from cifar10 import ModifiedCIFAR10, MakeDataLoaders
@@ -22,6 +23,18 @@ from models.alexnet import AlexNetSmall
 from train import train_loop, test
 
 from utils import LOG
+
+
+def set_seeds(seed):
+    """Set seeds for all random number generators"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    # if torch.cuda.is_available():
+    #     torch.cuda.manual_seed(seed)
+    #     torch.cuda.manual_seed_all(seed)
+    # # For DataLoader workers
+    # torch.utils.data.generator.manual_seed(seed)
 
 
 def get_loaders(opts):
@@ -42,9 +55,9 @@ def get_model(opts):
         model = MLP(1)
     elif opts.model_name == "MLP3":
         model = MLP(3)  # 3 hidden units
-    elif opts.model_name == "AlexNet":
+    elif opts.model_name in ("AlexNet", "AlexNetSmall"):
         model = AlexNetSmall()
-    elif opts.model_name == "Inception":
+    elif opts.model_name in ("Inception", "InceptionSmall"):
         model = InceptionSmall()
     # a recent implementation uses ResNet
 
@@ -69,27 +82,55 @@ def log_samples(experiment, data_loader, num_samples=4):
         # )
 
 
-def main(opts, experiment):
-    # opts : SimpleNamespace
-    # experiment : comet_ml.Experiment
+def update_opts(opts, args):
+    opts.config = args.config  # keep the yaml file name
 
     ## Device
     opts.device = "cuda" if torch.cuda.is_available() else "cpu"
     LOG.info(f"Device: {opts.device}")
+
+    # Update epochs
+    if args.epochs > opts.num_epochs:
+        prev = opts.num_epochs
+        opts.num_epochs = args.epochs
+        LOG.info(f"Updated number of epochs to {opts.num_epochs} from {prev}")
+
+    # Model checkpointing
+    if args.ckping:
+        opts.checkpoint_every = args.ckping
+        LOG.info(f"Checkpointing every {opts.checkpoint_every} epochs")
+    else:
+        opts.checkpoint_every = opts.num_epochs
+        LOG.info(f"Checkpointing at the end of training")
+
+    # Resume from checkpoint
+    # TODO: forse dovrei fare il dumping dello yaml quando aggiorno le epoche
+    # TODO: così da poter recuperare il numero precedente senza ricorrere al loading
+    # if args.resume_from == "last":
+    #     # resume from the last checkpoint
+    #     path = f"checkpoints/{opts.model_name}/"
+    #     fname = f"e_"
+    #     opts.resume_checkpoint = f"_prob_{opts.label_corruption_prob};type_{opts.data_corruption_type}.pt"
+    #     print(f"Resuming from last checkpoint: {opts.resume_checkpoint}")
+
+    # Update yaml file
+    with open(opts.config, "w") as f:
+        # dump the updated opts to the yaml file
+        yaml.dump(opts.__dict__, f)
+
+
+def main(opts, experiment):
+    # opts : SimpleNamespace
+    # experiment : comet_ml.Experiment
+    set_seeds(opts.seed)
 
     ## Load Dataset and create DataLoader
     train_loader, test_loader = get_loaders(opts)
     # log few samples to comet_ml
     # log_samples(experiment, train_loader)
 
-    ## Define model and optimizer
+    ## Get model
     model = get_model(opts)
-    optimizer = optim.SGD(
-        model.parameters(),
-        lr=opts.learning_rate,
-        momentum=opts.momentum,
-        weight_decay=opts.weight_decay
-    )
 
     ## Training & checkpointing
     ckp_dir = os.path.join("checkpoints", opts.model_name)
@@ -99,7 +140,7 @@ def main(opts, experiment):
     with experiment.train():
         LOG.info(f"Running {opts.experiment_name}")
         train_loop(
-            opts, model, optimizer, train_loader, test_loader,
+            opts, model, train_loader, test_loader,
             experiment, opts.resume_checkpoint
         )
 
@@ -138,30 +179,8 @@ if __name__ == "__main__":
 
     # Create object for given configuration
     opts = SimpleNamespace(**configs)
-
-    # Update epochs
-    if args.epochs > opts.num_epochs:
-        prev = opts.num_epochs
-        opts.num_epochs = args.epochs
-        LOG.info(f"Updated number of epochs to {opts.num_epochs} from {prev}")
-
-    # Model checkpointing
-    if args.ckping:
-        opts.checkpoint_every = args.ckping
-        LOG.info(f"Checkpointing every {opts.checkpoint_every} epochs")
-    else:
-        opts.checkpoint_every = opts.num_epochs
-        LOG.info(f"Checkpointing at the end of training")
-
-    # Resume from checkpoint
-    # TODO: forse dovrei fare il dumping dello yaml quando aggiorno le epoche
-    # TODO: così da poter recuperare il numero precedente senza ricorrere al loading
-    # if args.resume_from == "last":
-    #     # resume from the last checkpoint
-    #     path = f"checkpoints/{opts.model_name}/"
-    #     fname = f"e_"
-    #     opts.resume_checkpoint = f"_prob_{opts.label_corruption_prob};type_{opts.data_corruption_type}.pt"
-    #     print(f"Resuming from last checkpoint: {opts.resume_checkpoint}")
+    # TODO: maybe one can do better by joining somehow opts and args
+    update_opts(opts, args)  # update opts with other given arguments
 
     with launch_ipdb_on_exception():
         if not opts.experiment_key:
@@ -176,6 +195,7 @@ if __name__ == "__main__":
                 )
             )
         else:
+            # resume using experiment key and checkpoint
             experiment = start(
                 project_name=opts.comet_project,
                 mode="get",

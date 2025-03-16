@@ -3,9 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models_utils import visualize
-
-
 ## *************************** ##
 
 class SimpleBlock(nn.Module):
@@ -80,19 +77,25 @@ class MLP(nn.Module):
 ## *************************** ##
 
 
-def main():
+# def main():
 
-    ## Visualize simple network
-    model = Net(8, 128, 10)
-    input_data = torch.randn(64, 3, 28, 28)
-    visualize(model, "Net", input_data)
+#     from models_utils import visualize
+#     ## Visualize simple network
+#     model = Net(8, 128, 10)
+#     input_data = torch.randn(64, 3, 28, 28)
+#     visualize(model, "Net", input_data)
 
-    ## Visualize MLP
-    print()
-    model = MLP(2)
-    input_data = torch.randn(64, 3, 28, 28)
-    visualize(model, "MLP", input_data)
+#     ## Visualize MLP
+#     print()
+#     model = MLP(1)
+#     input_data = torch.randn(64, 3, 28, 28)
+#     visualize(model, "MLP1", input_data)
+
+#     print()
+#     model = MLP(3)
+#     input_data = torch.randn(64, 3, 28, 28)
+#     visualize(model, "MLP3", input_data)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

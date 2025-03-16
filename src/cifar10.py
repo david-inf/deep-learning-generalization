@@ -77,6 +77,9 @@ class ModifiedCIFAR10(Dataset):
                 prob>0 and prob<1. means partially corrupted labels
                 prob=1. means random labels
         """
+        # Set seed
+        random.seed(self.opts.seed)
+        np.random.seed(self.opts.seed)
         # from one-hot go back to int
         labels = np.argmax(self.y, axis=1)  # [60000]
         # mask for labels to be changed
@@ -102,6 +105,10 @@ class ModifiedCIFAR10(Dataset):
                 and variance to the original dataset is used to
                 generate random pixels for each image
         """
+        # Set seed
+        random.seed(self.opts.seed)
+        np.random.seed(self.opts.seed)
+        torch.manual_seed(self.opts.seed)
         # Get shape information
         n_samples, n_channels, height, width = self.X.shape
         n_pixels = height * width
@@ -163,35 +170,42 @@ class ModifiedCIFAR10(Dataset):
 #         return self.augmentation_pipeline(self.X[idx]), self.y[idx]
 
 
-def make_loader(data, opts):
-    # data: Dataset object
-    # opts: object whose attributes are the configs
-    loader = DataLoader(
-        data,
-        batch_size=opts.batch_size,
-        shuffle=True,
-        num_workers=opts.num_workers,
-        pin_memory=True
-    )
+# def make_loader(data, opts):
+#     # data: Dataset object
+#     # opts: object whose attributes are the configs
+#     loader = DataLoader(
+#         data,
+#         batch_size=opts.batch_size,
+#         shuffle=True,
+#         num_workers=opts.num_workers,
+#         pin_memory=True
+#     )
 
-    return loader
+#     return loader
 
 
 class MakeDataLoaders():
     def __init__(self, opts, data):
-        # generator = torch.Generator().manual_seed(opts.seed)
+        generator = torch.Generator().manual_seed(opts.seed)
         train, test = random_split(
             data, lengths=[1-opts.test_size, opts.test_size],
-            # generator=generator
+            generator=generator
         )
+
+        def seed_worker(worker_id):
+            worker_seed = torch.initial_seed() % 2**32
+            np.random.seed(worker_seed)
+            random.seed(worker_seed)
 
         self.train_loader = DataLoader(
             train, batch_size=opts.batch_size, shuffle=True,
-            num_workers=opts.num_workers, pin_memory=True
+            num_workers=opts.num_workers, pin_memory=True,
+            generator=generator, worker_init_fn=seed_worker
         )
         self.test_loader = DataLoader(
             test, batch_size=opts.batch_size, shuffle=True,
-            num_workers=opts.num_workers, pin_memory=True
+            num_workers=opts.num_workers, pin_memory=True,
+            generator=generator, worker_init_fn=seed_worker
         )
 
 

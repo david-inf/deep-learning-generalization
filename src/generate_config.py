@@ -6,6 +6,11 @@ import copy
 from ipdb import launch_ipdb_on_exception
 
 
+PROBS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+CORRUPS = ["none", "shuff_pix", "rand_pix", "gauss_pix"]
+MODELS = ["Net", "MLP1", "MLP3", "AlexNet", "Inception"]
+
+
 def generate_config(param_seq):
     # param_seq : list of dict
     # output_dir : str
@@ -14,10 +19,6 @@ def generate_config(param_seq):
     base_config_path = "config.yaml"
     with open(base_config_path, "r") as f:
         base_config = yaml.load(f, Loader=yaml.SafeLoader)  # dict
-
-    # Create output directory for YAML if it doesn't exist
-    output_dir = "experiments"
-    os.makedirs(output_dir, exist_ok=True)  # output dir not tracked by git
 
     # Generate all parameter combinations
     exp_count = 0
@@ -33,6 +34,7 @@ def generate_config(param_seq):
         exp_name = f"{config['model_name']}_{config['label_corruption_prob']}_{config['data_corruption_type']}"
         config["experiment_name"] = exp_name
         fname = exp_name + ".yaml"
+        output_dir = os.path.join("experiments", config["model_name"])
         output_path = os.path.join(output_dir, fname)
         with open(output_path, "w") as f:
             yaml.dump(config, f)
@@ -46,25 +48,26 @@ def generate_config(param_seq):
     print(f"Generated {exp_count} configurations")
 
 
+def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
+    # Create output directory for YAML configuration files if it doesn't exist already
+    os.makedirs(os.path.join("experiments", model_name), exist_ok=True)
+    from itertools import product
+    param_seq = []
+    for prob, corrup in product(probs, corrups):
+        param_seq.append({
+            "model_name": model_name,
+            "label_corruption_prob": prob,
+            "data_corruption_type": corrup,
+            "learning_rate": lr,
+        })
+    return param_seq
+
+
+
 if __name__ == "__main__":
 
-    param_seq = [
-        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.1, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.2, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.3, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.4, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.5, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.6, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.7, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.8, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 0.9, "data_corruption_type": "none"},
-        {"model_name": "Net", "label_corruption_prob": 1.0, "data_corruption_type": "none"},
-
-        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "shuff_pix"},
-        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "rand_pix"},
-        {"model_name": "Net", "label_corruption_prob": 0.0, "data_corruption_type": "gauss_pix"},
-    ]
+    # param_seq = generate_dicts(corrups=["none"])
+    param_seq = generate_dicts(model_name="AlexNet", probs=[0.1], corrups=["none"])
 
     with launch_ipdb_on_exception():
         generate_config(param_seq)

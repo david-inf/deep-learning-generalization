@@ -5,7 +5,7 @@ def visualize(model, model_name, input_data):
     out = model(input_data)
 
     console = Console()
-    console.print(f"Computed output shape = {out.shape}")
+    console.print(f"Model {model_name}, computed output shape = {out.shape}")
 
     model_stats = summary(
         model,

@@ -6,8 +6,6 @@ import torch.nn as nn
 # import torch.nn.functional as F
 # from torchvision.models import AlexNet
 
-from models_utils import visualize
-
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -57,12 +55,13 @@ class AlexNetSmall(nn.Module):
         return x
 
 
-def main():
-    model = AlexNetSmall()
-    input_data = torch.randn(64, 3, 28, 28)
-    visualize(model, "Inception", input_data)
+# def main():
+#     from models_utils import visualize
+#     model = AlexNetSmall()
+#     input_data = torch.randn(64, 3, 28, 28)
+#     visualize(model, "AlexNetSmall", input_data)
 
 
-if __name__ == "__main__":
-    with launch_ipdb_on_exception():
-        main()
+# if __name__ == "__main__":
+#     with launch_ipdb_on_exception():
+#         main()

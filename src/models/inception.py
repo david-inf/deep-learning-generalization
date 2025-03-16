@@ -6,8 +6,6 @@ import torch.nn as nn
 # import torch.nn.functional as F
 # from torchvision.models import Inception3
 
-from models_utils import visualize
-
 class ConvModule(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=(3, 3), stride=(1, 1), padding=0):
         super().__init__()
@@ -109,12 +107,13 @@ class InceptionSmall(nn.Module):
         return x
 
 
-def main():
-    model = InceptionSmall()
-    input_data = torch.randn(64, 3, 28, 28)
-    visualize(model, "Inception", input_data)
+# def main():
+#     from models_utils import visualize
+#     model = InceptionSmall()
+#     input_data = torch.randn(64, 3, 28, 28)
+#     visualize(model, "InceptionSmall", input_data)
 
 
-if __name__ == "__main__":
-    with launch_ipdb_on_exception():
-        main()
+# if __name__ == "__main__":
+#     with launch_ipdb_on_exception():
+#         main()

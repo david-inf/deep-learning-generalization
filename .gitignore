@@ -168,3 +168,4 @@ src/prove.py
 /src/experiments
 /src/plots/figures
 src/main-hpo.py
+src/run_exps.sh
