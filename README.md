@@ -91,30 +91,38 @@ Test error at the interpolaton threshold against label corruption level for each
 
 Train `AlexNet` model on original CIFAR10 dataset
 ```
-python main.py --config experiments/AlexNet/AlexNet_0.0_none.yaml
+python main.py --config experiments/AlexNet/AlexNet_0.0_none.yaml --epochs 20
 ```
 
 ```
-001: 100%|███████████████████████████████████████████████████████████████| 375/375 [00:04<00:00, 90.48batch/s, acc=42.9, loss=1.56]
-002: 100%|███████████████████████████████████████████████████████████████| 375/375 [00:03<00:00, 95.29batch/s, acc=54.1, loss=1.29]
-003: 100%|███████████████████████████████████████████████████████████████| 375/375 [00:04<00:00, 93.14batch/s, acc=59.9, loss=1.13]
+001: 100%|███████████████████████| 375/375 [00:04<00:00, 88.56batch/s, acc=43.7, loss=1.54]
+002: 100%|███████████████████████| 375/375 [00:03<00:00, 102.11batch/s, acc=55.2, loss=1.25]
+003: 100%|███████████████████████| 375/375 [00:03<00:00, 99.26batch/s, acc=61.1, loss=1.12]
 ...
 ```
 
-One can resume training by providing the checkpoint path in `resume_checkpoint`
+Resuming can be done smoothly since the checkpoint path is added to the yaml file and the comet_ml experiment key too
 ```
 python main.py --config experiments/AlexNet/AlexNet_0.0_none.yaml --epochs 40
 ```
 
 ```
-032: 100%|███████████████████████████████████████████████████████████████| 375/375 [00:04<00:00, 91.29batch/s, acc=100, loss=0.0122]
-INFO     Zero-loss condition reached at epoch 32 after 48.84s
-Test: 100%|██████████████████████████████████████████████████████████████| 94/94 [00:00<00:00, 165.00batch/s]
-INFO     Test accuracy: 88.9%
-033: 100%|███████████████████████████████████████████████████████████████| 375/375 [00:04<00:00, 91.53batch/s, acc=99.9, loss=0.013]
+...
+027: 100%|███████████████████████| 375/375 [00:03<00:00, 95.99batch/s, acc=100, loss=0.00829]
+INFO     Zero-loss condition reached at epoch 27 after 107.26s
+Test: 100%|██████████████████████| 94/94 [00:00<00:00, 167.94batch/s]
+INFO     Test accuracy: 70.2%
+028: 100%|███████████████████████| 375/375 [00:03<00:00, 96.36batch/s, acc=99.9, loss=0.00721]
 ...
 ```
 
 ## Experiments for figure 2
 
 ### Examples
+
+
+## Other examples
+
+**Description** | **Result**
+--------------- | -----------
+The importance of seed with randomization experiments: when no seed is provided, for example in case of resuming (two times here), the model confronts with new data, so it is like testing, except that the new data has an unknown distribution. When the seed is provided, the training continues smoothly in case of resuming. | ![](src/plots/figures/seed_noseed.jpeg)

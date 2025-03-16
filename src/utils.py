@@ -27,6 +27,24 @@ def get_logger():
 LOG = get_logger()
 
 
+def update_yaml(opts, key, value):
+    """
+    Update a key in the yaml configuration file
+
+    Args:
+        opts (SimpleNamespace): the configuration object
+        key (str): the key to update
+        value (any): the new value
+    """
+    import yaml
+    # update the opts object
+    opts.__dict__[key] = value
+    # update the yaml file
+    with open(opts.config, "w") as f:
+        # dump the updated opts to the yaml file
+        yaml.dump(opts.__dict__, f)
+
+
 # def plot_data(imgs, labels, row_title=None, **imshow_kwargs):
 #     # specifically for CIFAR10
 #     NAMES = ['plane', 'car', 'bird', 'cat',

@@ -67,7 +67,7 @@ def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
 if __name__ == "__main__":
 
     # param_seq = generate_dicts(corrups=["none"])
-    param_seq = generate_dicts(model_name="AlexNet", probs=[0.1], corrups=["none"])
+    param_seq = generate_dicts(model_name="AlexNet", probs=[0.0, 0.1, 0.2], corrups=["none"])
 
     with launch_ipdb_on_exception():
         generate_config(param_seq)

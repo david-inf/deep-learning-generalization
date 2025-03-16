@@ -12,7 +12,7 @@ import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ExponentialLR
 
-from utils import LOG
+from utils import LOG, update_yaml
 
 
 def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss, runtime):
@@ -79,24 +79,6 @@ def test(opts, model, test_loader, msg="Test"):
                 correct.extend(c)
 
     return np.mean(correct)
-
-
-def update_yaml(opts, key, value):
-    """
-    Update a key in the yaml configuration file
-
-    Args:
-        opts (SimpleNamespace): the configuration object
-        key (str): the key to update
-        value (any): the new value
-    """
-    import yaml
-    # update the opts object
-    opts.__dict__[key] = value
-    # update the yaml file
-    with open(opts.config, "w") as f:
-        # dump the updated opts to the yaml file
-        yaml.dump(opts.__dict__, f)
 
 
 def train_loop(opts, model, train_loader, val_loader,

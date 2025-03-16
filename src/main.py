@@ -22,7 +22,7 @@ from models.inception import InceptionSmall
 from models.alexnet import AlexNetSmall
 from train import train_loop, test
 
-from utils import LOG
+from utils import LOG, update_yaml
 
 
 def set_seeds(seed):
@@ -183,26 +183,32 @@ if __name__ == "__main__":
     update_opts(opts, args)  # update opts with other given arguments
 
     with launch_ipdb_on_exception():
+        # try resuming an experiment if experiment_key is provided
+        # otherwise start a new experiment
         if not opts.experiment_key:
+            # Check experiment name
             if opts.experiment_name:
                 exp_name = opts.experiment_name
             else:
                 exp_name = f"{opts.model_name}_{opts.label_corruption_prob}_{opts.data_corruption_type}",
+            # Create Experiment object
             experiment = start(
                 project_name=opts.comet_project,
                 experiment_config=ExperimentConfig(
                     name=exp_name
                 )
             )
+            # Update with experiment key for resuming
+            update_yaml(opts, "experiment_key", experiment.get_key())
         else:
-            # resume using experiment key and checkpoint
+            # Resume using provided experiment key and checkpoint
+            # the key is set above
+            # the checkpoint is set with save_checkpoint in train_loop()
             experiment = start(
                 project_name=opts.comet_project,
                 mode="get",
                 experiment_key=opts.experiment_key,
             )
-        experiment.log_parameters(vars(opts))
         main(opts, experiment)
+        experiment.log_parameters(vars(opts))
         experiment.end()
-        # try resuming an experiment if experiment_key is provided
-        # otherwise start a new experiment
