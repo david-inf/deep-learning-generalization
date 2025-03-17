@@ -85,7 +85,7 @@ def log_samples(experiment, data_loader, num_samples=4):
 def update_opts(opts, args):
     opts.config = args.config  # keep the yaml file name
 
-    ## Device
+    # Device
     opts.device = "cuda" if torch.cuda.is_available() else "cpu"
     LOG.info(f"Device: {opts.device}")
 
@@ -124,15 +124,15 @@ def main(opts, experiment):
     # experiment : comet_ml.Experiment
     set_seeds(opts.seed)
 
-    ## Load Dataset and create DataLoader
+    # Load Dataset and create DataLoader
     train_loader, test_loader = get_loaders(opts)
     # log few samples to comet_ml
     # log_samples(experiment, train_loader)
 
-    ## Get model
+    # Get model
     model = get_model(opts)
 
-    ## Training & checkpointing
+    # Training & checkpointing
     ckp_dir = os.path.join("checkpoints", opts.model_name)
     os.makedirs(ckp_dir, exist_ok=True)  # output dir not tracked by git
     opts.checkpoint_dir = ckp_dir  # for saving and loading ckps
@@ -144,7 +144,7 @@ def main(opts, experiment):
             experiment, opts.resume_checkpoint
         )
 
-    ## Testing
+    # Testing
     with experiment.test():
         test_acc = test(
             opts, model, test_loader
@@ -163,12 +163,16 @@ def main(opts, experiment):
 
 if __name__ == "__main__":
     # This code runs a single experiment
-    parser = argparse.ArgumentParser(description="Main script for running a single experiment and logging to comet_ml")
+    parser = argparse.ArgumentParser(
+        description="Main script for running a single experiment and logging to comet_ml")
     # A default configuration is set, but one may provide a different one
     # A different configuration is provided each time when running multiple experiments
-    parser.add_argument("--config", default="config.yaml", help="YAML Configuration file")
-    parser.add_argument("--epochs", default=10, type=int, help="Number of epochs, increase when resuming")
-    parser.add_argument("--ckping", type=int, default=None, help="Specify checkpointing frequency with epochs")
+    parser.add_argument("--config", default="config.yaml",
+                        help="YAML Configuration file")
+    parser.add_argument("--epochs", default=10, type=int,
+                        help="Number of epochs, increase when resuming")
+    parser.add_argument("--ckping", type=int, default=None,
+                        help="Specify checkpointing frequency with epochs")
     # parser.add_argument("--experiment_key", default=None, help="Resume an experiment")
     # parser.add_argument("--resume_from", default="last", help="Resume from checkpoint (last or path)")
 

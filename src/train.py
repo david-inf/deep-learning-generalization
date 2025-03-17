@@ -34,13 +34,15 @@ def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss, runtim
     # TODO: get from comet_ml, no need, one can use log_model
     # Update yaml file with checkpoint name
     update_yaml(opts, "resume_checkpoint", fname)
-    LOG.info(f"Saved checkpoint {fname} at epoch {epoch}, step {step}, runtime {runtime:.2f}s")
+    LOG.info(
+        f"Saved checkpoint {fname} at epoch {epoch}, step {step}, runtime {runtime:.2f}s")
 
 
 def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
     """ Load a model checkpoint to resume training """
     if not os.path.isfile(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+        raise FileNotFoundError(
+            f"Checkpoint file not found: {checkpoint_path}")
 
     # load from given checkpoint path
     LOG.info(f"Loading checkpoint: {checkpoint_path}")
@@ -103,10 +105,12 @@ def train_loop(opts, model, train_loader, val_loader,
     # but at comet_ml may be some steps more
     if resume_from:
         # load checkpoint
-        last_epoch, last_step, _, prev_runtime = load_checkpoint(resume_from, model, optimizer, scheduler)
+        last_epoch, last_step, _, prev_runtime = load_checkpoint(
+            resume_from, model, optimizer, scheduler)
         start_epoch += last_epoch
         step += last_step
-        LOG.info(f"Resuming training from epoch {start_epoch}, step {step}, previous runtime {prev_runtime:.2f}s")
+        LOG.info(
+            f"Resuming training from epoch {start_epoch}, step {step}, previous runtime {prev_runtime:.2f}s")
 
     # if not resume_from:
         # this avoids duplicated graphs
@@ -120,7 +124,7 @@ def train_loop(opts, model, train_loader, val_loader,
                 model.train()
                 tepoch.set_description(f"{epoch:03d}")
 
-                ## -----
+                # -----
                 # move data to device
                 X = X.to(opts.device)  # [N, C, W, H]
                 y = y.to(opts.device)  # [N, K] one-hot
@@ -138,7 +142,7 @@ def train_loop(opts, model, train_loader, val_loader,
                 label = np.argmax(N(y), axis=1)  # {0,...,9}
                 acc = np.mean(pred == label)
                 accs.append(acc)  # add accuracy for current batch
-                ## -----
+                # -----
 
                 if batch_idx % opts.log_every == 0:
                     train_loss = np.mean(losses[-opts.batch_window:])
@@ -167,7 +171,8 @@ def train_loop(opts, model, train_loader, val_loader,
                     # log test error and time to reach interpolation threshold
                     # this must be done just one time
                     _zero_loss_time = time.time() - _start + prev_runtime  # seconds
-                    LOG.info(f"Zero-loss condition reached at epoch {epoch} after {_zero_loss_time:.2f}s")
+                    LOG.info(
+                        f"Zero-loss condition reached at epoch {epoch} after {_zero_loss_time:.2f}s")
                     # test error at interpolation treshold
                     test_acc = test(opts, model, val_loader, "Test")
                     LOG.info(f"Test accuracy: {100.*test_acc:.1f}%")
@@ -184,9 +189,11 @@ def train_loop(opts, model, train_loader, val_loader,
         if epoch % opts.checkpoint_every == 0 or epoch == opts.num_epochs:
             # save every checkpoint_every epochs and at the end
             ckp_runtime = prev_runtime + time.time() - _start  # add duration of this run
-            save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss, ckp_runtime)
+            save_checkpoint(opts, model, optimizer, scheduler,
+                            epoch, step, loss, ckp_runtime)
 
-    prev_runtime += time.time() - _start  # add this run duration to the previous one
+    # add this run duration to the previous one
+    prev_runtime += time.time() - _start
     LOG.info(f"Training completed in {prev_runtime:.2f}s")
     LOG.info(f"Total duration {prev_runtime:.2f}s")
     # save final model

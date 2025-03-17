@@ -57,6 +57,7 @@ class Net(nn.Module):
 ## *************************** ##
 
 class MLP(nn.Module):
+    """ MLP with n_units hidden units with size hidden_size """
     def __init__(self, n_units=1, hidden_size=512):
         super().__init__()
 
