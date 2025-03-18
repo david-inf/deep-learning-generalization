@@ -48,6 +48,7 @@ def generate_config(param_seq):
     print(f"Generated {exp_count} configurations")
 
 
+# TODO: can be improved with **kwargs or something like that
 def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
     # Create output directory for YAML configuration files if it doesn't exist already
     os.makedirs(os.path.join("experiments", model_name), exist_ok=True)
@@ -63,13 +64,12 @@ def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
     return param_seq
 
 
-
 if __name__ == "__main__":
 
     # param_seq = generate_dicts(corrups=["none"])
     # param_seq = generate_dicts(model_name="AlexNet", probs=[0.0, 0.1, 0.2, 1.0], corrups=["none"])
-    # param_seq = generate_dicts(model_name="MLP1", probs=[0.0, 0.1, 0.2, 1.0], corrups=["none"])
-    param_seq = generate_dicts(model_name="Inception", probs=[0.0], corrups=["none"])
+    param_seq = generate_dicts(model_name="MLP1", probs=[0.0, 0.1, 0.2, 1.0], corrups=["none"])
+    # param_seq = generate_dicts(model_name="Inception", probs=[0.1], corrups=["none"])
 
     with launch_ipdb_on_exception():
         generate_config(param_seq)

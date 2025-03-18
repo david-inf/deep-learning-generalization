@@ -12,34 +12,36 @@ Supervised learning on CIFAR10
 <summary>Models</summary>
 
 - **Net** (simple conv net) `models/simple_mlp.py`:
-    - 17,000 params (too few params to reach zero-loss)
-    - `learning_rate=0.01`
+  - 17,000 params (too few params to reach zero-loss)
+  - `learning_rate=0.01`
 - **MLP1** `models/simple_mlp.py`:
-    - 1,200,000 params
-    - `learning_rate=0.01`
+  - 1,200,000 params
+  - `learning_rate=0.01`
 - **MLP3** `models/simple_mlp.py`:
-    - 1,700,000 params
-    - `learning_rate=0.01`
+  - 1,700,000 params
+  - `learning_rate=0.01`
 - **AlexNetSmall** `models/alexnet.py`:
-    - 1,560,000 params
-    - `learning_rate=0.01`
+  - 1,560,000 params
+  - `learning_rate=0.01`
 - **InceptionSmall** `models/inception.py`:
-    - 1,600,000 params
-    - `learning_rate=0.1`
-    - Comes with `bn=True`
+  - 1,600,000 params
+  - `learning_rate=0.1`
+  - Comes with `bn=True`
 - **InceptionSmallWithoutBN** `models/inception.py`
-    - For ablation studies on batch norm
-    - 1,600,000 params
-    - `learning_rate=0.1`
-    - `bn=False`
+  - For ablation studies on batch norm
+  - 1,600,000 params
+  - `learning_rate=0.1`
+  - `bn=False`
+
 </details>
+
 <details>
 <summary>Optimization</summary>
 
 - Optimizer: SGD, `momentum=0.9`, decay factor `gamma=0.95` per epoch
 - Loaders: `batch_size=128`
+
 </details>
-    
 
 ### Code organization
 
@@ -64,6 +66,7 @@ No weight decay, dropout or other forms of explicit regularization
 <summary>Learning curves</summary>
 
 Loss per training step varying randomization test
+
 - **True labels**: original CIFAR10 dataset `p=0.0`
 - **Random labels**: dataset with random labels both train and test, probability (fraction) specified by `p=1.0`
 - **Shuffled pixels**: a fixed pixels permutation is applied to train and test images
@@ -96,6 +99,7 @@ Test error at the interpolaton threshold against label corruption level for each
 ### Example
 
 Train `AlexNet` model on original CIFAR10 dataset
+
 ```
 python main.py --config experiments/AlexNet/AlexNet_0.0_none.yaml --epochs 20
 ```
@@ -108,6 +112,7 @@ python main.py --config experiments/AlexNet/AlexNet_0.0_none.yaml --epochs 20
 ```
 
 Resuming can be done smoothly since the checkpoint path is added to the yaml file and the comet_ml experiment key too
+
 ```
 python main.py --config experiments/AlexNet/AlexNet_0.0_none.yaml --epochs 40
 ```
@@ -126,8 +131,7 @@ INFO     Test accuracy: 70.2%
 
 ### Examples
 
-
-## Other examples
+## Other results
 
 **Description** | **Result**
 --------------- | -----------

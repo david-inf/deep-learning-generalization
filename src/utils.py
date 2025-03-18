@@ -5,10 +5,6 @@ from rich.logging import RichHandler
 import matplotlib.pyplot as plt
 import numpy as np
 
-import torch
-from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
-from torchvision import tv_tensors
-from torchvision.transforms.v2 import functional as F
 
 def N(x):
     # detach from computational graph
