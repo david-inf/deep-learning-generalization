@@ -95,6 +95,9 @@ def update_opts(opts, args):
     else:
         opts.checkpoint_every = opts.num_epochs
         LOG.info(f"Checkpointing at the end of training")
+    ckp_dir = os.path.join("checkpoints", opts.model_name)  # checkpoints directory
+    os.makedirs(ckp_dir, exist_ok=True)  # output dir not tracked by git
+    opts.checkpoint_dir = ckp_dir  # for saving and loading ckps
 
     # Resume from checkpoint
     # TODO: forse dovrei fare il dumping dello yaml quando aggiorno le epoche
@@ -125,11 +128,7 @@ def main(opts, experiment):
     # Get model
     model = get_model(opts)
 
-    # Training & checkpointing
-    ckp_dir = os.path.join("checkpoints", opts.model_name)
-    os.makedirs(ckp_dir, exist_ok=True)  # output dir not tracked by git
-    opts.checkpoint_dir = ckp_dir  # for saving and loading ckps
-
+    # Training
     with experiment.train():
         LOG.info(f"Running {opts.experiment_name}")
         train_loop(opts, model, train_loader, test_loader,

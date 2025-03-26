@@ -234,72 +234,89 @@ def mean_std_channel(loader):
 
 def main():
     # Hyperparams
-    config = dict(
-        batch_size=128, num_workers=0, label_corruption_prob=0.,
-        data_corruption_type="none", test_size=0.2
-    )
+    config = dict(batch_size=128, num_workers=0,
+                  label_corruption_prob=0., seed=42,
+                  data_corruption_type="none", test_size=0.2)
     opts = SimpleNamespace(**config)
 
     # Get Dataset and DataLoader
     data = ModifiedCIFAR10(opts)
+    print(f"Dataset size: X={data.X.shape}, y={data.y.shape}")
+    print(f"Mean: {data.mean}, Std: {data.std}")
     cifar10 = MakeDataLoaders(opts, data)
     train_loader = cifar10.train_loader
 
     # Verify data
     mean, std = mean_std_channel(train_loader)
-    print("Base dataset")
-    print("Mean:", mean)
-    print("Std:", std)
+    print("Check current statistics")
+    print("Mean:", mean, "Std:", std)
 
     # Check labels and images
     X, y = next(iter(train_loader))
-    print("Data:", X.shape)
-    print("Targets:", y.shape)
+    print("Data shape:", f"X={X.shape}", f"y={y.shape}")
+
+    # Print first batch
+    import os
+    os.makedirs("plots", exist_ok=True)
+    import matplotlib.pyplot as plt
+    from torchvision.utils import make_grid
+    grid = make_grid(X, nrow=8, padding=2, normalize=True)
+    plt.imshow(grid.permute(1, 2, 0))
+    plt.axis("off")
+    plt.savefig("plots/figures/cifar10.png")
 
 
 def main_corruption():
     # Original dataset
+    imgs = 8
     config_orig = dict(
-        batch_size=128, num_workers=0, label_corruption_prob=0.,
+        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
         data_corruption_type="none", test_size=0.2, seed=42
     )
-    original_data = ModifiedCIFAR10(SimpleNamespace(**config_orig))
+    opts_orig = SimpleNamespace(**config_orig)
+    original_data = ModifiedCIFAR10(opts_orig)
+    original = MakeDataLoaders(opts_orig, original_data)
+    original_loader = original.train_loader
+
     # Random labels
     config_labels = dict(
-        batch_size=128, num_workers=0, label_corruption_prob=0.5,
+        batch_size=imgs, num_workers=0, label_corruption_prob=0.5,
         data_corruption_type="none", test_size=0.2, seed=42
     )
-    # opts_labels = SimpleNamespace(**config_labels)
-    labels_data = ModifiedCIFAR10(SimpleNamespace(**config_labels))
+    opts_labels = SimpleNamespace(**config_labels)
+    labels_data = ModifiedCIFAR10(opts_labels)
     # labels_cifar10 = MakeDataLoaders(opts_labels, labels_data)
     # labels_loader = labels_cifar10.train_loader
+
     # Shuffled pixels
     config_shuff = dict(
-        batch_size=128, num_workers=0, label_corruption_prob=0.,
+        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
         data_corruption_type="shuff_pix", test_size=0.2, seed=42
     )
-    # opts_shuff = SimpleNamespace(**config_shuff)
-    shuff_data = ModifiedCIFAR10(SimpleNamespace(**config_shuff))
-    # shuff_cifar10 = MakeDataLoaders(opts_shuff, ModifiedCIFAR10(opts_shuff))
-    # shuff_loader = shuff_cifar10.train_loader
+    opts_shuff = SimpleNamespace(**config_shuff)
+    shuff_data = ModifiedCIFAR10(opts_shuff)
+    shuff_cifar10 = MakeDataLoaders(opts_shuff, ModifiedCIFAR10(opts_shuff))
+    shuff_loader = shuff_cifar10.train_loader
+
     # Random pixels
     config_rand = dict(
-        batch_size=128, num_workers=0, label_corruption_prob=0.,
+        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
         data_corruption_type="rand_pix", test_size=0.2, seed=42
     )
-    # opts_rand = SimpleNamespace(**config_rand)
-    rand_data = ModifiedCIFAR10(SimpleNamespace(**config_rand))
-    # rand_cifar10 = MakeDataLoaders(opts_rand, ModifiedCIFAR10(opts_rand))
-    # rand_loader = rand_cifar10.train_loader
+    opts_rand = SimpleNamespace(**config_rand)
+    rand_data = ModifiedCIFAR10(opts_rand)
+    rand_cifar10 = MakeDataLoaders(opts_rand, ModifiedCIFAR10(opts_rand))
+    rand_loader = rand_cifar10.train_loader
+
     # Gaussian pixels
     config_gauss = dict(
-        batch_size=128, num_workers=0, label_corruption_prob=0.,
+        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
         data_corruption_type="gauss_pix", test_size=0.2, seed=42
     )
-    # opts_gauss = SimpleNamespace(**config_gauss)
-    gauss_data = ModifiedCIFAR10(SimpleNamespace(**config_gauss))
-    # gauss_cifar10 = MakeDataLoaders(opts_gauss, ModifiedCIFAR10(opts_gauss))
-    # gauss_loader = gauss_cifar10.train_loader
+    opts_gauss = SimpleNamespace(**config_gauss)
+    gauss_data = ModifiedCIFAR10(opts_gauss)
+    gauss_cifar10 = MakeDataLoaders(opts_gauss, ModifiedCIFAR10(opts_gauss))
+    gauss_loader = gauss_cifar10.train_loader
 
     # ***** Labels corruption *****
     # print("Check labels and images")
@@ -323,21 +340,20 @@ def main_corruption():
     os.makedirs(dir, exist_ok=True)
     # ***** Shuffled pixels corruption *****
     print("Shuffled pixels")
-    imgs = 8
-    X_orig, _ = original_data[:imgs]
-    X_corrupted, _ = shuff_data[:imgs]
+    X_orig, _ = next(iter(original_loader))
+    X_corrupted, _ = next(iter(shuff_loader))
     grid = make_grid(torch.cat((X_orig, X_corrupted), dim=0), nrow=8)
     imshow(grid, os.path.join(dir, "shuffled_pixels.png"))
 
     # ***** Random pixels corruption *****
     print("Random pixels")
-    X_corrupted, _ = rand_data[:imgs]
+    X_corrupted, _ = next(iter(rand_loader))
     grid = make_grid(torch.cat((X_orig, X_corrupted), dim=0), nrow=8)
     imshow(grid, os.path.join(dir, "random_pixels.png"))
 
     # ***** Gaussian pixels corruption *****
     print("Gaussian pixels")
-    X_corrupted, _ = gauss_data[:imgs]
+    X_corrupted, _ = next(iter(gauss_loader))
     grid = make_grid(torch.cat((X_orig, X_corrupted), dim=0), nrow=8)
     imshow(grid, os.path.join(dir, "gaussian_pixels.png"))
 
