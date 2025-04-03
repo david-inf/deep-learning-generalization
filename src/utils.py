@@ -41,6 +41,16 @@ def update_yaml(opts, key, value):
         yaml.dump(opts.__dict__, f)
 
 
+def set_seeds(seed):
+    """Set seeds for all random number generators"""
+    import random
+    import numpy as np
+    import torch
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
 # def plot_data(imgs, labels, row_title=None, **imshow_kwargs):
 #     # specifically for CIFAR10
 #     NAMES = ['plane', 'car', 'bird', 'cat',

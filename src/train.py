@@ -14,28 +14,7 @@ from torch.optim.lr_scheduler import ExponentialLR
 from utils import N, LOG, update_yaml
 
 
-def save_checkpoint(opts, model, optimizer, scheduler, epoch, step, loss, runtime):
-    """ Save a model checkpoint so training can be resumed and also wandb logging """
-    fname = os.path.join(opts.checkpoint_dir,
-                         f"e_{epoch:03d}_{opts.experiment_name}.pt")
-    info = dict(
-        model_state_dict=model.state_dict(),
-        optimizer_state_dict=optimizer.state_dict(),
-        scheduler_state_dict=scheduler.state_dict(),
-        epoch=epoch,  # last epoch
-        step=step,  # last step
-        loss=loss,  # last computed loss
-        runtime=runtime,  # duration of the run
-    )
-    torch.save(info, fname)
-    # TODO: get from comet_ml, no need, one can use log_model
-    # Update yaml file with checkpoint name
-    update_yaml(opts, "resume_checkpoint", fname)
-    LOG.info(
-        f"Saved checkpoint {fname} at epoch {epoch}, step {step}, runtime {runtime:.2f}s")
-
-
-def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
+def load_checkpoint(checkpoint_path: str, model, optimizer, scheduler):
     """ Load a model checkpoint to resume training """
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(
@@ -53,58 +32,101 @@ def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
 
     epoch = checkpoint.get("epoch", 0)  # last completed epoch
     step = checkpoint.get("step", 0)  # last logged step
-    loss = checkpoint.get("loss", float("inf"))  # loss at checkpoint
     runtime = checkpoint.get("runtime", 0.)
 
     # print(f"Resuming from epoch {epoch}, step {step}")
-    return epoch, step, loss, runtime
+    return epoch, step, runtime
 
 
-def test(opts, model, test_loader):
-    """ Evaluate model on test set """
+class AverageMeter:
+    """ Computes and stores the average and current value """
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        # store metric statistics
+        self.val = 0  # value
+        self.sum = 0  # running sum
+        self.avg = 0  # running average
+        self.count = 0  # steps counter
+
+    def update(self, val, n=1):
+        # update statistic with given new value
+        self.val = val  # like loss
+        self.sum += val * n  # loss * batch_size
+        self.count += n  # count batch samples
+        self.avg = self.sum / self.count  # accounts for different sizes
+
+
+def test(opts, model, loader):
+    """
+    Evaluate model on test/validation set
+    Loader can be either test_loader or val_loader
+    """
+    losses = AverageMeter()
+    accs = AverageMeter()
     model.eval()
-    criterion = torch.nn.CrossEntropyLoss(reduction="none")
-    losses, correct = [], []
+    criterion = torch.nn.CrossEntropyLoss()  # scalar value
     with torch.no_grad():
-        with tqdm(test_loader, unit="batch") as tepoch:
-            for (X, y) in tepoch:
-                tepoch.set_description("Test")
+        for (X, y) in loader:
 
-                X, y = X.to(opts.device), y.to(opts.device)
-                out = model(X)  # logits: [N, K]
-                # Compute loss
-                loss = criterion(out, y)  # [N]
-                losses.extend(N(loss))
-                # Compute accuracy
-                pred = np.argmax(N(out), axis=1)  # array of ints, size [N]
-                label = N(y)  # {0,...,9}, size [N]
-                c = list(pred == label)  # corrects [0,1,0,0,0,1,1...]
-                correct.extend(c)
-
-    # Compute mean loss and accuracy over the full test set
-    return np.mean(correct)
-
-
-def validate(opts, model, val_loader):
-    """ Evaluate model on validation """
-    model.eval()
-    criterion = torch.nn.CrossEntropyLoss(reduction="none")
-    losses, correct = [], []
-    with torch.no_grad():
-        for (X, y) in val_loader:
+            # Get data and forward pass
             X, y = X.to(opts.device), y.to(opts.device)
             out = model(X)  # logits: [N, K]
-            # Compute loss for each sample
-            loss = criterion(out, y)  # [N]
-            losses.extend(N(loss))
-            # Compute correct or not for each sample
-            # corrects [0,1,0,0,0,1,1...]
-            c = list(np.argmax(N(out), axis=1) == N(y))
-            correct.extend(c)
+            # Compute loss
+            loss = criterion(out, y)
+            losses.update(N(loss), X.size(0))
+            # Compute accuracy
+            pred = N(torch.argmax(out, dim=1))  # array of ints, size [N]
+            label = N(y)  # {0,...,9}, size [N]
+            acc = np.mean(list(pred == label))  # mean over [0,1,0,0,0,1,1...]
+            accs.update(acc, X.size(0))
 
-    # Compute mean loss and accuracy over the full test set
-    val_loss, val_acc = np.mean(losses), np.mean(correct)
-    return val_loss, val_acc
+    return losses.avg, accs.avg
+
+
+class Trainer:
+    """ Class to store training state """
+
+    def __init__(self, model, optimizer, scheduler, epoch, step, runtime):
+        self.model = model.state_dict()
+        self.optimizer = optimizer.state_dict()
+        self.scheduler = scheduler.state_dict()
+        self.epoch = epoch  # last epoch reached
+        self.step = step  # last step reached
+        self.runtime = runtime  # total runtime
+
+    def update(self, model, optimizer, scheduler, epoch, step, runtime):
+        self.model = model.state_dict()
+        self.optimizer = optimizer.state_dict()
+        self.scheduler = scheduler.state_dict()
+        self.epoch = epoch
+        self.step = step
+        self.runtime = runtime
+
+    def __dict__(self):
+        """
+        Return a dictionary representation of the training state
+        that will be used for checkpointing
+        """
+        return {"model_state_dict": self.model,
+                "optimizer_state_dict": self.optimizer,
+                "scheduler_state_dict": self.scheduler, "epoch": self.epoch,
+                "step": self.step, "runtime": self.runtime, }
+
+
+def save_checkpoint(trainer: Trainer, opts, fname=None):
+    """ Save a model checkpoint to be resumed later """
+    info = trainer.__dict__()
+    if not fname:
+        fname = f"e_{info["epoch"]:03d}_{opts.experiment_name}.pt"
+    output_dir = os.path.join(opts.checkpoint_dir, fname)
+    torch.save(info, output_dir)
+    # Update yaml file with checkpoint name
+    update_yaml(opts, "resume_checkpoint", output_dir)
+    LOG.info(f"Saved checkpoint {fname} at epoch {info["epoch"]}, "
+             f"step {info["step"]}, runtime {info["runtime"]:.2f}s")
 
 
 def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=None):
@@ -112,12 +134,20 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
     Training loop with with resuming routine. This accounts for training
     ended before the number of epochs is reached or when one wants
     to train the model further.
+
+    Args:
+        opts: Configuration options for training.
+        model: The model to be trained.
+        train_loader: DataLoader for the training data.
+        val_loader: DataLoader for the validation data.
+        experiment: Experiment object for logging.
+        resume_from: Path to a checkpoint to resume training from.
     """
     # if there's only need for the metrics at interp thresh
     if opts.interp_reached and not opts.curve:
         return LOG.info("Already at interpolation threshold")
 
-    criterion = torch.nn.CrossEntropyLoss()  # expects logits
+    criterion = torch.nn.CrossEntropyLoss()  # expects logits and labels
     optimizer = optim.SGD(model.parameters(), lr=opts.learning_rate,
                           momentum=opts.momentum, weight_decay=opts.weight_decay)
     scheduler = ExponentialLR(optimizer, gamma=opts.lr_decay)
@@ -129,25 +159,28 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
     # but at comet_ml may be some steps more
     if resume_from:
         # load checkpoint
-        last_epoch, last_step, _, prev_runtime = load_checkpoint(
+        last_epoch, last_step, prev_runtime = load_checkpoint(
             resume_from, model, optimizer, scheduler)
         start_epoch += last_epoch
         step += last_step
-        LOG.info(f"Resuming training from epoch {start_epoch}, step {step}, "
-                 f"previous runtime {prev_runtime:.2f}s")
+        LOG.info(f"Resuming training from epoch {start_epoch}, step {step},"
+                 f" previous runtime {prev_runtime:.2f}s")
+
+    # save training objects and info
+    trainer = Trainer(model, optimizer, scheduler,
+                      start_epoch, step, prev_runtime)
 
     # if not resume_from:
-        # this avoids duplicated graphs
-        # watch(model)
+    # this avoids duplicated graphs
+    # watch(model)
 
     for epoch in range(start_epoch, opts.num_epochs + 1):
         experiment.log_current_epoch(epoch)
-        losses, accs = [], []
 
         # Perform steps over an epoch
         step, loss, train_loss, train_acc = train_epoch(
             opts, model, train_loader, experiment, criterion,
-            optimizer, step, epoch, losses, accs)
+            optimizer, step, epoch)
 
         # Check zero-loss condition at each epoch
         # uses last computed loss and accuracy
@@ -171,10 +204,12 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
     LOG.info(f"Current training at epoch {epoch}, step {step}")
 
 
-def train_epoch(opts, model, train_loader, experiment, criterion, optimizer, step, epoch, losses, accs):
+def train_epoch(opts, model, train_loader, experiment, criterion, optimizer, step, epoch):
     """ Train over a single epoch """
     with tqdm(train_loader, unit="batch") as tepoch:
         for batch_idx, (X, y) in enumerate(tepoch):
+            losses = AverageMeter()
+            accs = AverageMeter()
             model.train()
             tepoch.set_description(f"{epoch:03d}")
 
@@ -190,20 +225,23 @@ def train_epoch(opts, model, train_loader, experiment, criterion, optimizer, ste
             loss.backward()   # backprop
             optimizer.step()  # update model
             # metrics
-            losses.append(N(loss))  # add loss for current batch
+            losses.update(N(loss), X.size(0))  # add loss for current batch
             acc = np.mean(np.argmax(N(out), axis=1) == N(y))
-            accs.append(acc)  # add accuracy for current batch
+            accs.update(acc, X.size(0))  # add accuracy for current batch
             # -----
 
             if batch_idx % opts.log_every == 0:
                 # Compute training metrics and log to comet_ml
-                train_loss = np.mean(losses[-opts.batch_window:])
-                train_acc = np.mean(accs[-opts.batch_window:])
-                experiment.log_metrics({
-                    "loss": train_loss,
-                    "acc": train_acc,
-                }, step=step)
-                # TODO: validation
+                train_loss = losses.avg
+                train_acc = accs.avg
+                experiment.log_metrics(
+                    {"loss": train_loss, "acc": train_acc}, step=step)
+                # Compute validation metrics and log to comet_ml
+                if hasattr(opts, "validate") and opts.validate:
+                    with experiment.validate():
+                        val_loss, val_acc = test(opts, model, val_loader)
+                        experiment.log_metrics(
+                            {"loss": val_loss, "acc": val_acc}, step=step)
                 # Log to console
                 tepoch.set_postfix(train_loss=train_loss,
                                    train_acc=train_acc)

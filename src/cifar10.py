@@ -7,25 +7,26 @@ from ipdb import launch_ipdb_on_exception
 
 import torch
 from torchvision import datasets
+import torchvision.transforms as transforms
 from torchvision.transforms import v2
 from torchvision.utils import make_grid
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset
 
-from utils import imshow
+from utils import imshow, set_seeds
 
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-class ModifiedCIFAR10(Dataset):
-    def __init__(self, opts=None, crop=True):
+class MyCIFAR10(Dataset):
+    def __init__(self, opts, crop=True):
         self.opts = opts
+        self.num_classes = 10
 
         # Get full CIFAR10 dataset, first separated
         # (X, y) train: N=50000 ; test: N=10000
         trainset = datasets.CIFAR10(root="./data", train=True, download=True)
         testset = datasets.CIFAR10(root="./data", train=False, download=True)
-        self.num_classes = len(classes)
 
         # Combine train and test sets
         # so that corruption can be applied to both at the same time
@@ -43,13 +44,12 @@ class ModifiedCIFAR10(Dataset):
             self.X = self.X[:, :, margin:-margin, margin:-margin]
         self.y = torch.tensor(y)
 
-        # Data normalization
-        self.mean = torch.mean(self.X, dim=(0, 2, 3))  # original data mean
-        self.std = torch.std(self.X, dim=(0, 2, 3))  # original data std
-        for c in range(3):  # For each channel
-            self.X[:, c, :, :] = (self.X[:, c, :, :] -
-                                  self.mean[c]) / self.std[c]
+        # Normalize data with given mean and std
+        self.mean = torch.tensor([0.489255, 0.475775, 0.439889])
+        self.std = torch.tensor([0.243047, 0.239315, 0.255997])
+        self.X = transforms.Normalize(self.mean, self.std)(self.X)
 
+        set_seeds(opts.seed)  # set seed for reproducibility
         # Corruption
         assert opts.label_corruption_prob >= 0. and opts.label_corruption_prob <= 1.
         if opts.label_corruption_prob > 0.:
@@ -158,17 +158,16 @@ class ModifiedCIFAR10(Dataset):
         return self.X[idx], self.y[idx]
 
 
-# class AugmentedCIFAR10(CIFAR10):
-#     def __init__(self, opts=None, train=True):
-#         super().__init__(opts, train, crop=False)
-#         self.augmentation_pipeline = v2.Compose([
-#             v2.RandomRotation(degrees=self.opts.rotation_degrees, expand=False),
-#             v2.RandomCrop(size=28),  # 28x28 image
-#             v2.RandomHorizontalFlip(p=self.opts.horizontal_flip_prob)
-#         ])
+class MyAugmentedCIFAR10(MyCIFAR10):
+    def __init__(self, opts):
+        super().__init__(opts, crop=False)
+        self.augmentation_pipeline = v2.Compose([
+            v2.RandomHorizontalFlip(p=self.opts.horizontal_flip_prob),
+            v2.RandomCrop(size=28),  # 28x28 image
+        ])
 
-#     def __getitem__(self, idx):
-#         return self.augmentation_pipeline(self.X[idx]), self.y[idx]
+    def __getitem__(self, idx):
+        return self.augmentation_pipeline(self.X[idx]), self.y[idx]
 
 
 # def make_loader(data, opts):
@@ -185,29 +184,57 @@ class ModifiedCIFAR10(Dataset):
 #     return loader
 
 
-class MakeDataLoaders():
-    def __init__(self, opts, data):
+class MakeDataLoaders:
+    def __init__(self, opts, traindata, testdata, valdata):
+        from torch.utils.data import DataLoader, Subset
+        set_seeds(opts.seed)
         generator = torch.Generator().manual_seed(opts.seed)
-        train, test = random_split(
-            data, lengths=[1-opts.test_size, opts.test_size],
-            generator=generator
-        )
 
+        N = len(traindata)
+        indices = list(range(N))
+        # 1) Original train-test splits
+        full_trainset = Subset(traindata, indices[:50000])
+        testset = Subset(testdata, indices[50000:])
+        # 2) Make train-val splits
+        split = int(np.floor(opts.val_size * N))
+        np.random.shuffle(indices)
+        train_idx, val_idx = indices[split:], indices[:split]
+        trainset = Subset(full_trainset, train_idx)
+        valset = Subset(valdata, val_idx)
+
+        # 3) Data loaders
         def seed_worker(worker_id):
             worker_seed = torch.initial_seed() % 2**32
             np.random.seed(worker_seed)
             random.seed(worker_seed)
 
         self.train_loader = DataLoader(
-            train, batch_size=opts.batch_size, shuffle=True,
+            trainset, batch_size=opts.batch_size, shuffle=True,
+            num_workers=opts.num_workers, pin_memory=True,
+            generator=generator, worker_init_fn=seed_worker
+        )
+        self.val_loader = DataLoader(
+            valset, batch_size=opts.batch_size, shuffle=True,
             num_workers=opts.num_workers, pin_memory=True,
             generator=generator, worker_init_fn=seed_worker
         )
         self.test_loader = DataLoader(
-            test, batch_size=opts.batch_size, shuffle=True,
+            testset, batch_size=opts.batch_size, shuffle=True,
             num_workers=opts.num_workers, pin_memory=True,
             generator=generator, worker_init_fn=seed_worker
         )
+
+
+def get_loaders(opts):
+    if hasattr(opts, "augmented") and opts.augmented:
+        trainset = MyAugmentedCIFAR10(opts)
+    else:
+        trainset = MyCIFAR10(opts)
+    valset = MyCIFAR10(opts)
+    testset = MyCIFAR10(opts)
+
+    loader = MakeDataLoaders(opts, trainset, testset, valset)
+    return loader.train_loader, loader.val_loader, loader.test_loader
 
 
 def mean_std_channel(loader):
