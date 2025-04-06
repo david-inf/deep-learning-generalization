@@ -1,13 +1,12 @@
-# Template for the configuration file
+# Template for the configuration file for figure 1 experiments
 # first options are common, mostly, between experiments
 # so one can try to merge common options with the specific ones
 
 # seed ensures proper reproducibility, especially when resuming
 seed: 42
 # - data randomization
-# - dataset splitting
+# - dataset shuffling
 
-val_size: 0.1  # train-val split (set 0. to avoid)
 batch_size: 128
 num_workers: 2
 device: cuda

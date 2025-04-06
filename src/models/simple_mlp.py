@@ -74,29 +74,3 @@ class MLP(nn.Module):
         h = self.mlp(h)
         h = self.head(h)
         return h
-
-## *************************** ##
-
-
-# def main():
-
-#     from models_utils import visualize
-#     ## Visualize simple network
-#     model = Net(8, 128, 10)
-#     input_data = torch.randn(64, 3, 28, 28)
-#     visualize(model, "Net", input_data)
-
-#     ## Visualize MLP
-#     print()
-#     model = MLP(1)
-#     input_data = torch.randn(64, 3, 28, 28)
-#     visualize(model, "MLP1", input_data)
-
-#     print()
-#     model = MLP(3)
-#     input_data = torch.randn(64, 3, 28, 28)
-#     visualize(model, "MLP3", input_data)
-
-
-# if __name__ == "__main__":
-#     main()

@@ -1,0 +1,25 @@
+# Template for the configuration file for figure 2 experiments
+
+# seed ensures proper reproducibility, especially when resuming
+seed: 42
+
+batch_size: 128
+num_workers: 2
+device: cuda
+
+num_epochs: 5
+learning_rate: 0.01
+momentum: 0.9
+weight_decay: 0.
+lr_decay: 0.95  # exponential decay at each epoch
+
+comet_project: "deep-learning-generalization"
+experiment_name: null
+experiment_key: null
+checkpoint_every: null  # save the model every ... epochs
+log_every: 100  # compute metrics and log to comet_ml after ... batches
+resume_checkpoint: null
+
+figure1: false
+bn: true  # w/ or w/o batch norm
+augment: false  # maybe todo

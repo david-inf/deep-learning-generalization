@@ -1,8 +1,8 @@
-# Deep-learning-generalization
+# Understanding generalization in deep learning
 
-A work on generalization in deep learning
+A work on generalization in deep learning for the Deep Learning course exam
 
-> Chiyuan Zhang, Samy Bengio, Moritz Hardt, Benjamin Recht, Oriol Vinyals. Understanding deep learning requires rethinking generalization International Conference on Learning Representations (ICLR), 2017. [arXiv:1611.03530].
+> Chiyuan Zhang, Samy Bengio, Moritz Hardt, Benjamin Recht, Oriol Vinyals. Understanding deep learning requires rethinking generalization. International Conference on Learning Representations (ICLR), 2017. ![](arXiv:1611.03530).
 
 ### Details
 
@@ -11,9 +11,7 @@ Supervised learning on CIFAR10
 <details>
 <summary>Models</summary>
 
-- **Net** (simple conv net) `models/simple_mlp.py`:
-  - 17,000 params (too few params to reach zero-loss)
-  - `learning_rate=0.01`
+
 - **MLP1** `models/simple_mlp.py`:
   - 1,200,000 params
   - `learning_rate=0.01`
@@ -21,17 +19,12 @@ Supervised learning on CIFAR10
   - 1,700,000 params
   - `learning_rate=0.01`
 - **AlexNetSmall** `models/alexnet.py`:
-  - 1,560,000 params
+  - 1,380,000 params
   - `learning_rate=0.01`
 - **InceptionSmall** `models/inception.py`:
-  - 1,600,000 params
+  - 1,650,000 params
   - `learning_rate=0.1`
   - Comes with `bn=True`
-- **InceptionSmallWithoutBN** `models/inception.py`
-  - For ablation studies on batch norm
-  - 1,600,000 params
-  - `learning_rate=0.1`
-  - `bn=False`
 
 </details>
 
@@ -45,20 +38,18 @@ Supervised learning on CIFAR10
 
 ### Code organization
 
-- `main.py` main script from which a single experiment can be launched using command line
+- `main-f1.py` `main-f2.py` main script from which a single experiment can be launched using command line, different main for experiments from figure 1 and figure 2
 - `train.py` used in main script, contains training utilities
 - `models/` directory with implemented models (detailed above)
 - `cifar10.py` wrapper of torchvision CIFAR10 that supports label and data corruption using `ModifiedCIFAR10` class
 - `utils.py` more utilities
-- `config.yaml` base configuration for experiments
+- `config-f1.yaml` `config-f2.yaml` base configuration for experiments
 
-Use `python main.py --help` to show program arguments
+Use `python main-f1.py --help` to show program arguments
 
-# Experiments
+## Experiments for Figure 1
 
 Experiments naming: `model_name`\_`label_corruption_prob`\_`data_corruption_type`
-
-## Experiments for figure 1
 
 No weight decay, dropout or other forms of explicit regularization
 
@@ -96,12 +87,12 @@ Test error at the interpolaton threshold against label corruption level for each
 | Convergence slowdown | plot |
 | Generalization error growth | plot |
 
-### Example
+### Examples
 
 Train `AlexNet` model on original CIFAR10 dataset
 
 ```
-python main.py --config experiments/AlexNet/AlexNet_0.0_none.yaml --epochs 20
+python main-f1.py --config experiments/AlexNet/AlexNet_0.0_none.yaml --epochs 20
 ```
 
 ```
@@ -127,7 +118,12 @@ INFO     Test accuracy: 70.2%
 ...
 ```
 
-## Experiments for figure 2
+## Experiments for Figure 2
+
+| **Experiment** | **Results** |
+| -------------- | ----------- |
+| Learning curves | plot |
+| Validation curves | plot |
 
 ### Examples
 

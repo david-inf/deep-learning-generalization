@@ -13,12 +13,12 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("--config", help="YAML configuration file")
 
-parser.add_argument("--epochs", default=10, type=int,
+parser.add_argument("--epochs", type=int, default=5,
                     help="Number of epochs, increase when resuming")
 parser.add_argument("--ckping", type=int, default=None,
                     help="Specify checkpointing frequency with epochs")
 
-parser.add_argument("--log_every", type=int, default=20,
+parser.add_argument("--log_every", type=int, default=50,
                     help="Metrics logging frequency in batches")
 # parser.add_argument("--resume_from", default="last", help="Resume from checkpoint (last or path)")
 

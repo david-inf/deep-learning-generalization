@@ -10,6 +10,7 @@ from comet_ml.integration.pytorch import watch
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ExponentialLR
+import torch.backends.cudnn as cudnn
 
 from utils import N, LOG, update_yaml
 
@@ -130,22 +131,8 @@ def save_checkpoint(trainer: Trainer, opts, fname=None):
 
 
 def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=None):
-    """
-    Training loop with with resuming routine. This accounts for training
-    ended before the number of epochs is reached or when one wants
-    to train the model further.
-
-    Args:
-        opts: Configuration options for training.
-        model: The model to be trained.
-        train_loader: DataLoader for the training data.
-        val_loader: DataLoader for the validation data.
-        experiment: Experiment object for logging.
-        resume_from: Path to a checkpoint to resume training from.
-    """
-    # if there's only need for the metrics at interp thresh
-    if opts.interp_reached and not opts.curve:
-        return LOG.info("Already at interpolation threshold")
+    """ Train loop for Figure 1 experiments """
+    cudnn.benchmark = True
 
     criterion = torch.nn.CrossEntropyLoss()  # expects logits and labels
     optimizer = optim.SGD(model.parameters(), lr=opts.learning_rate,
@@ -154,9 +141,7 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
 
     start_epoch, step = 1, 0  # last training epoch and step
     start_time, prev_runtime = time.time(), 0.  # previous duration in case of resuming
-    # TODO: is it possible to account for epoch not ended?
-    # the checkpoint is at some epoch
-    # but at comet_ml may be some steps more
+
     if resume_from:
         # load checkpoint
         last_epoch, last_step, prev_runtime = load_checkpoint(
@@ -170,30 +155,34 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
     trainer = Trainer(model, optimizer, scheduler,
                       start_epoch, step, prev_runtime)
 
-    # if not resume_from:
-    # this avoids duplicated graphs
-    # watch(model)
-
     for epoch in range(start_epoch, opts.num_epochs + 1):
         experiment.log_current_epoch(epoch)
 
-        # Perform steps over an epoch
-        step, loss, train_loss, train_acc = train_epoch(
-            opts, model, train_loader, experiment, criterion,
-            optimizer, step, epoch)
-
-        # Check zero-loss condition at each epoch
-        # uses last computed loss and accuracy
-        check_interp(opts, model, val_loader, experiment, start_time,
-                     prev_runtime, epoch, train_loss, train_acc)
+        if opts.figure1:
+            # Check zero-loss condition at each epoch
+            if opts.interp_reached and not opts.curve:
+                LOG.info("Interpolation threshold reached, "
+                         "and no need to continue, breaking training...")
+                break
+            # Perform steps over an epoch
+            step, train_loss, train_acc = train_epoch_f1(
+                opts, model, train_loader, experiment, criterion,
+                optimizer, step, epoch)
+            check_interp(opts, model, val_loader, experiment, start_time,
+                         prev_runtime, epoch, train_loss, train_acc)
+        else:
+            step = train_epoch_f2(
+                opts, model, train_loader, val_loader, experiment,
+                criterion, optimizer, step, epoch)
 
         scheduler.step()  # update learning rate at each epoch
 
         if epoch % opts.checkpoint_every == 0 or epoch == opts.num_epochs:
             # save every checkpoint_every epochs and at the end
             ckp_runtime = prev_runtime + time.time() - start_time  # add duration of this run
-            save_checkpoint(opts, model, optimizer, scheduler,
-                            epoch, step, loss, ckp_runtime)
+            trainer.update(model, optimizer, scheduler,
+                           epoch, step, ckp_runtime)
+            save_checkpoint(trainer, opts)
 
     # add this run duration to the previous one
     runtime = time.time() - start_time
@@ -204,7 +193,7 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
     LOG.info(f"Current training at epoch {epoch}, step {step}")
 
 
-def train_epoch(opts, model, train_loader, experiment, criterion, optimizer, step, epoch):
+def train_epoch_f1(opts, model, train_loader, experiment, criterion, optimizer, step, epoch):
     """ Train over a single epoch """
     with tqdm(train_loader, unit="batch") as tepoch:
         for batch_idx, (X, y) in enumerate(tepoch):
@@ -232,23 +221,16 @@ def train_epoch(opts, model, train_loader, experiment, criterion, optimizer, ste
 
             if batch_idx % opts.log_every == 0:
                 # Compute training metrics and log to comet_ml
-                train_loss = losses.avg
-                train_acc = accs.avg
+                train_loss, train_acc = losses.avg, accs.avg
                 experiment.log_metrics(
                     {"loss": train_loss, "acc": train_acc}, step=step)
-                # Compute validation metrics and log to comet_ml
-                if hasattr(opts, "validate") and opts.validate:
-                    with experiment.validate():
-                        val_loss, val_acc = test(opts, model, val_loader)
-                        experiment.log_metrics(
-                            {"loss": val_loss, "acc": val_acc}, step=step)
                 # Log to console
                 tepoch.set_postfix(train_loss=train_loss,
                                    train_acc=train_acc)
                 tepoch.update()
                 step += 1
 
-    return step, loss, train_loss, train_acc
+    return step, train_loss, train_acc
 
 
 def check_interp(opts, model, test_loader, experiment, start_time, prev_runtime, epoch, train_loss, train_acc):
@@ -257,17 +239,17 @@ def check_interp(opts, model, test_loader, experiment, start_time, prev_runtime,
     if so validate over test set
     """
     if not opts.interp_reached:
-        if train_loss < 1e-2 or train_acc > 0.995:
+        if train_loss < 1e-2 or train_acc > 0.997:
             opts.interp_reached = True
             # update yaml, crucial when resuming
             update_yaml(opts, "interp_reached", True)
-            with experiment.validate():
+            with experiment.test():
                 # When interpolation threshold is reached
                 # log test error and time to reach interpolation threshold
                 # this must be done just one time
                 zero_loss_time = time.time() - start_time + prev_runtime  # seconds
                 LOG.info(f"Zero-loss condition reached at epoch {epoch}"
-                         "after {zero_loss_time:.2f}s")
+                         f" after {zero_loss_time:.2f}s")
                 # test error at interpolation treshold
                 test_acc = test(opts, model, test_loader)
                 LOG.info(f"Test accuracy: {100.*test_acc:.1f}%")
@@ -278,3 +260,48 @@ def check_interp(opts, model, test_loader, experiment, start_time, prev_runtime,
                     "time_to_overfit": zero_loss_time,
                     "label_corruption": opts.label_corruption_prob
                 })
+
+
+def train_epoch_f2(opts, model, train_loader, val_loader, experiment, criterion, optimizer, step, epoch):
+    with tqdm(train_loader, unit="batch") as tepoch:
+        for batch_idx, (X, y) in enumerate(tepoch):
+            losses = AverageMeter()
+            accs = AverageMeter()
+            model.train()
+            tepoch.set_description(f"{epoch:03d}")
+
+            # -----
+            # move data to device
+            X = X.to(opts.device)  # [N, C, W, H]
+            y = y.to(opts.device)  # [N]
+            # forward pass
+            optimizer.zero_grad()
+            out = model(X)  # logits: [N, K]
+            loss = criterion(out, y)  # scalar value
+            # backward pass
+            loss.backward()   # backprop
+            optimizer.step()  # update model
+            # metrics
+            losses.update(N(loss), X.size(0))
+            acc = np.mean(np.argmax(N(out), axis=1) == N(y))
+            accs.update(acc, X.size(0))
+            # -----
+
+            if batch_idx % opts.log_every == 0:
+                # Compute training metrics and log to comet_ml
+                train_loss = losses.avg
+                train_acc = accs.avg
+                experiment.log_metrics(
+                    {"loss": train_loss, "acc": train_acc}, step=step)
+                # Compute validation metrics and log to comet_ml
+                with experiment.test():
+                    val_loss, val_acc = test(opts, model, val_loader)
+                    experiment.log_metrics(
+                        {"loss": val_loss, "acc": val_acc}, step=step)
+                    # Log to console
+                tepoch.set_postfix(train_loss=train_loss, train_acc=train_acc,
+                                val_loss=val_loss, val_acc=val_acc)
+                tepoch.update()
+                step += 1
+
+    return step

@@ -10,7 +10,7 @@ from torchvision import datasets
 import torchvision.transforms as transforms
 from torchvision.transforms import v2
 from torchvision.utils import make_grid
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 from utils import imshow, set_seeds
 
@@ -18,7 +18,9 @@ classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-class MyCIFAR10(Dataset):
+class CorruptedCIFAR10(Dataset):
+    """ CIFAR10 dataset with corrupted labels or data """
+
     def __init__(self, opts, crop=True):
         self.opts = opts
         self.num_classes = 10
@@ -158,83 +160,76 @@ class MyCIFAR10(Dataset):
         return self.X[idx], self.y[idx]
 
 
-class MyAugmentedCIFAR10(MyCIFAR10):
-    def __init__(self, opts):
-        super().__init__(opts, crop=False)
-        self.augmentation_pipeline = v2.Compose([
-            v2.RandomHorizontalFlip(p=self.opts.horizontal_flip_prob),
-            v2.RandomCrop(size=28),  # 28x28 image
-        ])
+class MyCIFAR10(Dataset):
+    """ Wrapper for CIFAR10 Dataset class """
+
+    def __init__(self, opts, crop=True, train=True):
+        self.opts = opts
+        self.num_classes = 10
+
+        dataset = datasets.CIFAR10(
+            root="../../data", train=train, download=True)
+        X, y = dataset.data, dataset.targets  # ndarray, list
+
+        # Prepare data
+        self.X = torch.from_numpy(X).permute(0, 3, 1, 2) / 255.  # [0,1]
+        if crop:
+            margin = (32 - 28) // 2
+            self.X = self.X[:, :, margin:-margin, margin:-margin]
+        self.y = torch.tensor(y)
+
+        # Normalize data with given mean and std
+        self.mean = torch.tensor([0.489255, 0.475775, 0.439889])
+        self.std = torch.tensor([0.243047, 0.239315, 0.255997])
+        self.X = transforms.Normalize(self.mean, self.std)(self.X)
+
+    def __len__(self):
+        return self.X.shape[0]
 
     def __getitem__(self, idx):
-        return self.augmentation_pipeline(self.X[idx]), self.y[idx]
+        """
+        returns:
+            X: [C, W, H] (tensor)
+            y: [] (tensor)
+        """
+        image, target = self.X[idx], self.y[idx]
+        return image, target
 
 
-# def make_loader(data, opts):
-#     # data: Dataset object
-#     # opts: object whose attributes are the configs
-#     loader = DataLoader(
-#         data,
-#         batch_size=opts.batch_size,
-#         shuffle=True,
-#         num_workers=opts.num_workers,
-#         pin_memory=True
-#     )
+# class MyAugmentedCIFAR10(MyCIFAR10):
+#     def __init__(self, opts):
+#         super().__init__(opts, crop=False, train=True)
+#         self.augmentation_pipeline = v2.Compose([
+#             v2.RandomHorizontalFlip(p=0.5),
+#             v2.RandomCrop(size=32, padding=4),
+#         ])
 
-#     return loader
+#     def __getitem__(self, idx):
+#         return self.augmentation_pipeline(self.X[idx]), self.y[idx]
 
 
 class MakeDataLoaders:
-    def __init__(self, opts, traindata, testdata, valdata):
-        from torch.utils.data import DataLoader, Subset
+    def __init__(self, opts, trainset, testset):
         set_seeds(opts.seed)
         generator = torch.Generator().manual_seed(opts.seed)
 
-        N = len(traindata)
-        indices = list(range(N))
-        # 1) Original train-test splits
-        full_trainset = Subset(traindata, indices[:50000])
-        testset = Subset(testdata, indices[50000:])
-        # 2) Make train-val splits
-        split = int(np.floor(opts.val_size * N))
-        np.random.shuffle(indices)
-        train_idx, val_idx = indices[split:], indices[:split]
-        trainset = Subset(full_trainset, train_idx)
-        valset = Subset(valdata, val_idx)
-
-        # 3) Data loaders
         def seed_worker(worker_id):
             worker_seed = torch.initial_seed() % 2**32
             np.random.seed(worker_seed)
             random.seed(worker_seed)
 
+        batch_size = opts.batch_size
+        num_workers = opts.num_workers
         self.train_loader = DataLoader(
-            trainset, batch_size=opts.batch_size, shuffle=True,
-            num_workers=opts.num_workers, pin_memory=True,
-            generator=generator, worker_init_fn=seed_worker
-        )
-        self.val_loader = DataLoader(
-            valset, batch_size=opts.batch_size, shuffle=True,
-            num_workers=opts.num_workers, pin_memory=True,
+            trainset, batch_size=batch_size, shuffle=True,
+            num_workers=num_workers, pin_memory=True,
             generator=generator, worker_init_fn=seed_worker
         )
         self.test_loader = DataLoader(
-            testset, batch_size=opts.batch_size, shuffle=True,
-            num_workers=opts.num_workers, pin_memory=True,
+            testset, batch_size=batch_size, shuffle=True,
+            num_workers=num_workers, pin_memory=True,
             generator=generator, worker_init_fn=seed_worker
         )
-
-
-def get_loaders(opts):
-    if hasattr(opts, "augmented") and opts.augmented:
-        trainset = MyAugmentedCIFAR10(opts)
-    else:
-        trainset = MyCIFAR10(opts)
-    valset = MyCIFAR10(opts)
-    testset = MyCIFAR10(opts)
-
-    loader = MakeDataLoaders(opts, trainset, testset, valset)
-    return loader.train_loader, loader.val_loader, loader.test_loader
 
 
 def mean_std_channel(loader):
@@ -263,14 +258,15 @@ def main():
     # Hyperparams
     config = dict(batch_size=128, num_workers=0,
                   label_corruption_prob=0., seed=42,
-                  data_corruption_type="none", test_size=0.2)
+                  data_corruption_type="none")
     opts = SimpleNamespace(**config)
 
     # Get Dataset and DataLoader
-    data = ModifiedCIFAR10(opts)
-    print(f"Dataset size: X={data.X.shape}, y={data.y.shape}")
-    print(f"Mean: {data.mean}, Std: {data.std}")
-    cifar10 = MakeDataLoaders(opts, data)
+    trainset = MyCIFAR10(opts)
+    testset = MyCIFAR10(opts, train=False)
+    print(f"Train size: X={trainset.X.shape}, y={trainset.y.shape}")
+    print(f"test size: X={testset.X.shape}, y={testset.y.shape}")
+    cifar10 = MakeDataLoaders(opts, trainset, testset)
     train_loader = cifar10.train_loader
 
     # Verify data
@@ -296,71 +292,54 @@ def main():
 def main_corruption():
     # Original dataset
     imgs = 8
-    config_orig = dict(
-        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
-        data_corruption_type="none", test_size=0.2, seed=42
-    )
-    opts_orig = SimpleNamespace(**config_orig)
-    original_data = ModifiedCIFAR10(opts_orig)
-    original = MakeDataLoaders(opts_orig, original_data)
+    config = dict(batch_size=imgs, num_workers=0, label_corruption_prob=0.,
+                  data_corruption_type="none", seed=42)
+    opts = SimpleNamespace(**config)
+    original_data = CorruptedCIFAR10(opts)
+    original = MakeDataLoaders(opts, original_data, original_data)
     original_loader = original.train_loader
 
     # Random labels
-    config_labels = dict(
-        batch_size=imgs, num_workers=0, label_corruption_prob=0.5,
-        data_corruption_type="none", test_size=0.2, seed=42
-    )
-    opts_labels = SimpleNamespace(**config_labels)
-    labels_data = ModifiedCIFAR10(opts_labels)
-    # labels_cifar10 = MakeDataLoaders(opts_labels, labels_data)
-    # labels_loader = labels_cifar10.train_loader
+    config = dict(batch_size=imgs, num_workers=0, label_corruption_prob=0.5,
+                  data_corruption_type="none", seed=42)
+    opts = SimpleNamespace(**config)
+    labels_data = CorruptedCIFAR10(opts)
 
     # Shuffled pixels
-    config_shuff = dict(
-        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
-        data_corruption_type="shuff_pix", test_size=0.2, seed=42
-    )
-    opts_shuff = SimpleNamespace(**config_shuff)
-    shuff_data = ModifiedCIFAR10(opts_shuff)
-    shuff_cifar10 = MakeDataLoaders(opts_shuff, ModifiedCIFAR10(opts_shuff))
+    config = dict(batch_size=imgs, num_workers=0, label_corruption_prob=0.,
+                  data_corruption_type="shuff_pix", seed=42)
+    opts = SimpleNamespace(**config)
+    shuff_data = CorruptedCIFAR10(opts)
+    shuff_cifar10 = MakeDataLoaders(opts, shuff_data, shuff_data)
     shuff_loader = shuff_cifar10.train_loader
 
     # Random pixels
-    config_rand = dict(
-        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
-        data_corruption_type="rand_pix", test_size=0.2, seed=42
-    )
-    opts_rand = SimpleNamespace(**config_rand)
-    rand_data = ModifiedCIFAR10(opts_rand)
-    rand_cifar10 = MakeDataLoaders(opts_rand, ModifiedCIFAR10(opts_rand))
+    config = dict(batch_size=imgs, num_workers=0, label_corruption_prob=0.,
+                       data_corruption_type="rand_pix", seed=42)
+    opts = SimpleNamespace(**config)
+    rand_data = CorruptedCIFAR10(opts)
+    rand_cifar10 = MakeDataLoaders(opts, rand_data, rand_data)
     rand_loader = rand_cifar10.train_loader
 
     # Gaussian pixels
-    config_gauss = dict(
-        batch_size=imgs, num_workers=0, label_corruption_prob=0.,
-        data_corruption_type="gauss_pix", test_size=0.2, seed=42
-    )
-    opts_gauss = SimpleNamespace(**config_gauss)
-    gauss_data = ModifiedCIFAR10(opts_gauss)
-    gauss_cifar10 = MakeDataLoaders(opts_gauss, ModifiedCIFAR10(opts_gauss))
+    config = dict(batch_size=imgs, num_workers=0, label_corruption_prob=0.,
+                        data_corruption_type="gauss_pix", seed=42)
+    opts = SimpleNamespace(**config)
+    gauss_data = CorruptedCIFAR10(opts)
+    gauss_cifar10 = MakeDataLoaders(opts, gauss_data, gauss_data)
     gauss_loader = gauss_cifar10.train_loader
-
-    # ***** Labels corruption *****
-    # print("Check labels and images")
-    # X, y = next(iter(labels_loader))
-    # print("Data:", X.shape)
-    # print("Targets:", y.shape)
 
     print("Check original labels againts corrupted labels")
     confusion = np.zeros((10, 10), dtype=int)
-    for i in range(10000):
+    for i in range(5000):
         _, y = original_data[i]
         _, y_corrupted = labels_data[i]
         confusion[y.item(), y_corrupted.item()] += 1
     tot = confusion.sum()
     print(confusion / tot)
     acc = confusion.trace() / tot
-    print(f"Given prob: {config_labels["label_corruption_prob"]} <> Observed prob: {1-acc:.2f}")
+    print(
+        f"Given prob: 0.5 <> Observed prob: {1-acc:.2f}")
 
     import os
     dir = "plots/figures"

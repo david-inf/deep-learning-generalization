@@ -11,12 +11,11 @@ CORRUPS = ["none", "shuff_pix", "rand_pix", "gauss_pix"]
 MODELS = ["Net", "MLP1", "MLP3", "AlexNet", "Inception"]
 
 
-def generate_config(param_seq):
+def generate_config(param_seq, base_config_path="config-f1.yaml"):
     # param_seq : list of dict
     # output_dir : str
 
     # Load the base configuration to which apply the variations
-    base_config_path = "config.yaml"
     with open(base_config_path, "r") as f:
         base_config = yaml.load(f, Loader=yaml.SafeLoader)  # dict
 
@@ -31,7 +30,10 @@ def generate_config(param_seq):
             config[key] = value
 
         # Save the configuration to a YAML file
-        exp_name = f"{config['model_name']}_{config['label_corruption_prob']}_{config['data_corruption_type']}"
+        if config["figure1"]:
+            exp_name = f"{config['model_name']}_{config['label_corruption_prob']}_{config['data_corruption_type']}"
+        else:
+            exp_name = f"{config["model_name"]}_bn{config["bn"]}"
         config["experiment_name"] = exp_name
         fname = exp_name + ".yaml"
         output_dir = os.path.join("experiments", config["model_name"])
@@ -60,6 +62,7 @@ def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
             "label_corruption_prob": prob,
             "data_corruption_type": corrup,
             "learning_rate": lr,
+            "figure1": True,
         })
     return param_seq
 
@@ -67,9 +70,15 @@ def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
 if __name__ == "__main__":
 
     # param_seq = generate_dicts(corrups=["none"])
-    # param_seq = generate_dicts(model_name="AlexNet", probs=[0.0, 0.1, 0.2, 1.0], corrups=["none"])
     param_seq = generate_dicts(model_name="MLP1", probs=[0.0, 0.1, 0.2, 1.0], corrups=["none"])
+    # param_seq = generate_dicts(model_name="MLP1", probs=[0.3], corrups=["none"])
     # param_seq = generate_dicts(model_name="Inception", probs=[0.1], corrups=["none"])
 
+    # Figure 2 dicts
+    # param_seq = [
+    #     {"model_name": "Inception", "figure1": False, "bn": True},
+    #     {"model_name": "Inception", "figure1": False, "bn": False}
+    # ]
+
     with launch_ipdb_on_exception():
-        generate_config(param_seq)
+        generate_config(param_seq, base_config_path="config-f1.yaml")
