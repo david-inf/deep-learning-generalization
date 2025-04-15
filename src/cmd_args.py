@@ -11,6 +11,7 @@ from utils import LOG, update_yaml
 parser = argparse.ArgumentParser(
     description="Run an experiment and log to comet_ml")
 parser.add_argument("--config", help="YAML configuration file")
+# parser.add_argument("--config", default="src/experiments/MLP1/MLP1_0.0_none.yaml")  # debug
 parser.add_argument("--epochs", help="Update epochs number")
 
 

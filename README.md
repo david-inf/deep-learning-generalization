@@ -1,11 +1,15 @@
 # Understanding generalization in deep learning
 
-A work on generalization in deep learning, let's try to reproduce CIFAR10 experiments from figure 1 and 2 from:
+A work on generalization in deep learning, let's try to reproduce CIFAR10 experiments from figure 1 and 2
 
 > Chiyuan Zhang, Samy Bengio, Moritz Hardt, Benjamin Recht, Oriol Vinyals. Understanding deep learning requires rethinking generalization. International Conference on Learning Representations (ICLR), 2017. [Arxiv](https://arxiv.org/abs/1611.03530).
 
 <details>
 <summary>Code organization</summary>
+
+```
+pip install -r requirements.txt
+```
 
 Go to the `src/` directory, then you will find the following programs
 
@@ -26,7 +30,7 @@ Use `python main-f1.py --help` and `python main-f2.py --help` to show program ar
 
 ### :open_file_folder: Details
 
-Supervised learning on CIFAR10, how far can we push neural nets?
+Supervised learning on CIFAR10, how far can we push neural nets generalization?
 
 <details open>
 <summary>Models</summary>
@@ -47,8 +51,6 @@ No weight decay, dropout or other forms of explicit regularization
 
 <details open>
 <summary>Data</summary>
-
-In a nushell:
 
 - Experiments from figure 1: corrupt labels (non shown here) and data (in three different ways) then see if neural nets can still learn where no relationship between data and labels exists
 - Experiments from figure 2: see the effect of batch norm on Inception architecture with original data
@@ -108,15 +110,17 @@ Loss per training step varying randomization test
 - **Random pixels**: different pixels permutation for each train and test image
 - **Gaussian**: train and test images are generated according to a normal distribution with matching mean and std to the full dataset
 
-Fixed architecture with varying randomization test
+Fixed architecture (`AlexNet`) with varying randomization test
+
 </details>
 
 <details>
 <summary>Convergence slowdown</summary>
 
-Time to reach the interpolation threshold againts label corruption for each network. One must run 11 experiments for the corrution levels per 3 different architectures
+Time to reach the interpolation threshold againts label corruption for each network. One must run 11 experiments for the corrution levels per 3 different architectures.
 
-We should see that as the label corruption level increases, the time to reach the interpolation threshold increases as well.
+We should see that as the label corruption level increases, the time to reach the interpolation threshold increases as well. However this also accounts for the model complexity.
+
 </details>
 
 <details>
@@ -132,24 +136,49 @@ plot | plot | plot
 <details>
 <summary>Logging</summary>
 
-Train `MLP1` model on CIFAR10 with true labels
+Train `MLP1` model on CIFAR10 with half-corrupted labels
 
 ```
-python main_fig1.py --config experiments/MLP1/MLP1_0.0_none.yaml
+python main_fig1.py --config experiments/MLP1/MLP1_0.5_none.yaml --epochs 50
+Updated epochs from 20 to 50
+Checkpoint every 20
+COMET INFO: Experiment is live on comet.com [...]
+
+Running MLP1_0.5_none
+Loading checkpoint: checkpoints/MLP1/e_020_MLP1_0.5_none.pt
+Resuming training from epoch 21, step 180, previous runtime 15.91s
+021: 100%|████████████████████████████████████████████| 391/391 [00:00<00:00, 459.92batch/s, train_acc=0.562, train_loss=1.34]
+022: 100%|████████████████████████████████████████████| 391/391 [00:00<00:00, 443.12batch/s, train_acc=0.577, train_loss=1.29]
+023: 100%|████████████████████████████████████████████| 391/391 [00:00<00:00, 460.65batch/s, train_acc=0.602, train_loss=1.24]
+...
+049: 100%|████████████████████████████████████████████| 391/391 [00:00<00:00, 486.09batch/s, train_acc=0.898, train_loss=0.467]
+050: 100%|████████████████████████████████████████████| 391/391 [00:00<00:00, 517.96batch/s, train_acc=0.901, train_loss=0.455]
+Saved checkpoint e_050_MLP1_0.5_none.pt at epoch 50, step 450, runtime 40.24s
+Training completed in 24.35s <> Current runtime: 40.25s
+Current training at epoch 50, step 450
 ```
 
 ```
+python main_fig1.py --config experiments/MLP1/MLP1_0.0_none.yaml --epochs 90
+Updated epochs from 70 to 90
+Checkpoint every 20
+COMET INFO: Experiment is live on comet.com [...]
+
 Running MLP1_0.0_none
-Loading checkpoint: checkpoints/MLP1/e_005_MLP1_0.0_none.pt
-Resuming training from epoch 6, step 30, previous runtime 3.85s
-006: 100%|████████████████████████████████████| 391/391 [00:00<00:00, 456.75batch/s, train_acc=0.438, train_loss=1.75]
-007: 100%|████████████████████████████████████| 391/391 [00:00<00:00, 498.94batch/s, train_acc=0.398, train_loss=1.79]
-008: 100%|████████████████████████████████████| 391/391 [00:00<00:00, 480.78batch/s, train_acc=0.383, train_loss=1.79]
-009: 100%|████████████████████████████████████| 391/391 [00:00<00:00, 528.55batch/s, train_acc=0.383, train_loss=1.82]
-010: 100%|████████████████████████████████████| 391/391 [00:00<00:00, 556.55batch/s, train_acc=0.398, train_loss=1.91]
-Saved checkpoint e_010_MLP1_0.0_none.pt at epoch 10, step 60, runtime 7.76s
-Training completed in 3.92s <> Current runtime: 7.77s
-Current training at epoch 10, step 60
+Loading checkpoint: checkpoints/MLP1/e_070_MLP1_0.0_none.pt
+Resuming training from epoch 71, step 630, previous runtime 59.63s
+071: 100%|█████████████████████████████████████████████| 391/391 [00:00<00:00, 413.14batch/s, train_acc=0.997, train_loss=0.0706]
+072: 100%|█████████████████████████████████████████████| 391/391 [00:00<00:00, 506.75batch/s, train_acc=0.997, train_loss=0.0702]
+073: 100%|█████████████████████████████████████████████| 391/391 [00:00<00:00, 465.85batch/s, train_acc=0.997, train_loss=0.0698]
+074: 100%|█████████████████████████████████████████████| 391/391 [00:00<00:00, 466.58batch/s, train_acc=0.997, train_loss=0.0693]
+075: 100%|█████████████████████████████████████████████| 391/391 [00:00<00:00, 473.89batch/s, train_acc=0.997, train_loss=0.069]
+076: 100%|█████████████████████████████████████████████| 391/391 [00:00<00:00, 451.35batch/s, train_acc=0.997, train_loss=0.0686]
+077: 100%|█████████████████████████████████████████████| 391/391 [00:00<00:00, 498.46batch/s, train_acc=0.997, train_loss=0.0682]
+Zero-loss condition reached at epoch 77 after 65.52s
+Test accuracy: 53.1%
+Interpolation threshold reached, and no need to continue, breaking training...
+Training completed in 6.25s <> Current runtime: 65.89s
+Current training at epoch 78, step 69
 ```
 
 </details>
@@ -192,7 +221,7 @@ Learning curves | Validation curves
 plot | plot
 
 
-## Other results
+## :ballot_box_with_check: Other results
 
 **Description** | **Result**
 --------------- | -----------

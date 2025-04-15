@@ -65,8 +65,7 @@ def load_checkpoint(checkpoint_path: str, model, optimizer, scheduler):
 
 def test(opts, model, loader):
     """Evaluate model on test/validation set"""
-    losses = AverageMeter()  # full set loss
-    accs = AverageMeter()  # full set accuracy
+    losses, accs = AverageMeter(), AverageMeter()
     criterion = torch.nn.CrossEntropyLoss()  # scalar value
     model.eval()
     with torch.no_grad():
@@ -130,6 +129,11 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
         if opts.figure1:
             # check if zero-loss has been reached
             if opts.interp_reached and not opts.curve:
+                ckp_runtime = prev_runtime + time.time() - start_time  # add duration of this run
+                trainer.update(model, optimizer, scheduler,
+                               epoch, step, ckp_runtime)
+                fname = f"e_{trainer.epoch:03d}_{opts.experiment_name}_interp.pt"
+                save_checkpoint(trainer, opts, fname)
                 LOG.info("Interpolation threshold reached, "
                          "and no need to continue, breaking training...")
                 break
@@ -162,10 +166,10 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
 
 
 def train_epoch(opts, model, train_loader, val_loader, experiment, criterion, optimizer, step, epoch):
-    """ Train over a single epoch """
+    """Train over a single epoch"""
+    losses, accs = AverageMeter(), AverageMeter()
     with tqdm(train_loader, unit="batch") as tepoch:
         for batch_idx, (X, y) in enumerate(tepoch):
-            losses, accs = AverageMeter(), AverageMeter()
             model.train()
             tepoch.set_description(f"{epoch:03d}")
 
@@ -176,14 +180,14 @@ def train_epoch(opts, model, train_loader, val_loader, experiment, criterion, op
             # forward pass
             output = model(X)  # logits: [N, K]
             loss = criterion(output, y)  # scalar value
-            # backward pass
-            optimizer.zero_grad()
-            loss.backward()   # backprop
-            optimizer.step()  # update model
             # metrics
             losses.update(N(loss), X.size(0))  # add loss for current batch
             acc = np.mean(np.argmax(N(output), axis=1) == N(y))
             accs.update(acc, X.size(0))  # add accuracy for current batch
+            # backward pass
+            optimizer.zero_grad()
+            loss.backward()   # backprop
+            optimizer.step()  # update model
             # -----
 
             if batch_idx % opts.log_every == 0 or batch_idx == len(train_loader) - 1:
