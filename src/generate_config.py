@@ -7,13 +7,12 @@ from ipdb import launch_ipdb_on_exception
 
 
 PROBS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-CORRUPS = ["none", "shuff_pix", "rand_pix", "gauss_pix"]
+CORRUPS = ["shuff_pix", "rand_pix", "gauss_pix"]
 MODELS = ["Net", "MLP1", "MLP3", "AlexNet", "Inception"]
 
 
 def generate_config(param_seq, base_config_path="config-f1.yaml"):
     # param_seq : list of dict
-    # output_dir : str
 
     # Load the base configuration to which apply the variations
     with open(base_config_path, "r") as f:
@@ -35,6 +34,11 @@ def generate_config(param_seq, base_config_path="config-f1.yaml"):
         else:
             exp_name = f"{config["model_name"]}_bn{config["bn"]}"
         config["experiment_name"] = exp_name
+
+        # checkpoint path
+        config["checkpoint_dir"] = os.path.join("checkpoints", config["model_name"])
+
+        # dump configuration file
         fname = exp_name + ".yaml"
         output_dir = os.path.join("experiments", config["model_name"])
         output_path = os.path.join(output_dir, fname)
@@ -62,17 +66,18 @@ def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
             "label_corruption_prob": prob,
             "data_corruption_type": corrup,
             "learning_rate": lr,
-            "figure1": True,
+            "figure1": True, "curve": False,
+            "num_epochs": 5,
         })
     return param_seq
 
 
 if __name__ == "__main__":
 
-    # param_seq = generate_dicts(corrups=["none"])
-    param_seq = generate_dicts(model_name="MLP1", probs=[0.0, 0.1, 0.2, 1.0], corrups=["none"])
-    # param_seq = generate_dicts(model_name="MLP1", probs=[0.3], corrups=["none"])
-    # param_seq = generate_dicts(model_name="Inception", probs=[0.1], corrups=["none"])
+    # param_seq = generate_dicts(model_name="MLP1", probs=PROBS, corrups=["none"])
+    # param_seq = generate_dicts(model_name="AlexNet", probs=PROBS, corrups=["none"])
+    # param_seq = generate_dicts(model_name="Inception", probs=PROBS, corrups=["none"], lr=0.1)
+    # param_seq = generate_dicts(model_name="Inception", probs=[0.0], corrups=CORRUPS, lr=0.1)
 
     # Figure 2 dicts
     # param_seq = [

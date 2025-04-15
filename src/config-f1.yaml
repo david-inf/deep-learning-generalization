@@ -20,11 +20,10 @@ comet_project: "deep-learning-generalization"
 experiment_name: null
 experiment_key: null
 checkpoint_every: null  # save the model every ... epochs
-log_every: 20  # compute metrics and log to comet_ml after ... batches
+log_every: 50  # compute metrics and log to comet_ml after ... batches
 resume_checkpoint: null
 
-model_name: "Net"
-num_epochs: 10
+num_epochs: 5
 
 label_corruption_prob: 0.  # start with original labels
 data_corruption_type: "none"  # start with original data
@@ -33,7 +32,7 @@ data_corruption_type: "none"  # start with original data
 # crucial when resuming, to avoid overwriting the results
 interp_reached: false
 
-# when resuming make sure about to update:
+# when resuming make sure to update:
 # num_epochs
 # resume_checkpoint
 # experiment_key

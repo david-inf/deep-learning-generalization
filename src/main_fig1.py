@@ -11,7 +11,7 @@ import torch
 
 # my stuffs
 from cifar10 import CorruptedCIFAR10, MakeDataLoaders
-from models.simple_mlp import Net, MLP
+from models.mlp import MLP
 from models.inception import InceptionSmall
 from models.alexnet import AlexNetSmall
 from train import train_loop
@@ -34,9 +34,7 @@ def get_loaders(opts):
 
 
 def get_model(opts):
-    if opts.model_name == "Net":
-        model = Net(16, 128, 10)
-    elif opts.model_name == "MLP1":
+    if opts.model_name == "MLP1":
         model = MLP(1)
     elif opts.model_name == "MLP3":
         model = MLP(3)  # 3 hidden units
@@ -44,6 +42,8 @@ def get_model(opts):
         model = AlexNetSmall()
     elif opts.model_name in ("Inception", "InceptionSmall"):
         model = InceptionSmall()
+    else:
+        raise ValueError(f"Unknown model {opts.model_name}")
     # a recent implementation uses ResNet
     model = model.to(opts.device)
     return model

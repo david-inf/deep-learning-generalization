@@ -158,10 +158,6 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-/data
-/src/data
-/wandb
-/src/wandb
 src/prove.py
 /src/plots/plots_data
 /src/checkpoints
@@ -170,3 +166,6 @@ src/prove.py
 src/main-hpo.py
 src/run_exps.sh
 src/run_experiments.py
+runs.ods
+.~lock.runs.ods\#
+src/models/net.py

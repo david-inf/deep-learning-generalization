@@ -27,8 +27,8 @@ class CorruptedCIFAR10(Dataset):
 
         # Get full CIFAR10 dataset, first separated
         # (X, y) train: N=50000 ; test: N=10000
-        trainset = datasets.CIFAR10(root="./data", train=True, download=True)
-        testset = datasets.CIFAR10(root="./data", train=False, download=True)
+        trainset = datasets.CIFAR10(root="../../data", train=True, download=True)
+        testset = datasets.CIFAR10(root="../../data", train=False, download=True)
 
         # Combine train and test sets
         # so that corruption can be applied to both at the same time

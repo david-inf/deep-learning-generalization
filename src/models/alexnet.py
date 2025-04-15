@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn as nn
-from torchvision.models import AlexNet
+# from torchvision.models import AlexNet
 
 
 class AlexNetSmall(nn.Module):
@@ -32,7 +32,7 @@ class AlexNetSmall(nn.Module):
     def forward(self, x):
         # N x 3 x 28 x 28
         x = self.conv1(x)
-        x = self.conv2(x); print(x.shape)
+        x = self.conv2(x)
         x = self.avgpool(x)
         x = self.flatten(x)
         x = self.mlp(x)
