@@ -55,9 +55,15 @@ No weight decay, dropout or other forms of explicit regularization
 - Experiments from figure 1: corrupt labels (non shown here) and data (in three different ways) then see if neural nets can still learn where no relationship between data and labels exists
 - Experiments from figure 2: see the effect of batch norm on Inception architecture with original data
 
-CIFAR10 | Shuffled pixels | Random pixels | Gaussian pixels
--- | -- | -- | --
-![cifar10](src/plots/figures/cifar10.png) | ![cifar10](src/plots/figures/shuffled_pixels.png) | ![cifar10](src/plots/figures/random_pixels.png) | ![cifar10](src/plots/figures/gaussian_pixels.png)
+<div style="display: flex; flex-direction: row;">
+  <img src="src/plots/figures/cifar10.png" alt="CIFAR10 original" width="24%">
+  &nbsp;
+  <img src="src/plots/figures/shuffled_pixels.png" alt="Shuffled pixels" width="24%">
+  &nbsp;
+  <img src="src/plots/figures/random_pixels.png" alt="Random pixels" width="24%">
+  &nbsp;
+  <img src="src/plots/figures/gaussian_pixels.png" alt="Gaussian pixels" width="24%">
+</div>
 
 </details>
 
@@ -93,7 +99,7 @@ Experiments naming: `model_name`\_`label_corruption_prob`\_`data_corruption_type
 - `seed: 42`
 - `weight_decay: 0.0`
 
-```
+```bash
 python main_fig1 --config experiments/MLP1/MLP1_0.0_none.yaml
 ```
 
@@ -132,10 +138,17 @@ Test error at the interpolaton threshold against label corruption level for each
 <details open>
 <summary>Results</summary>
 
-Learning curves | Convergence slowdown | Generalization error growth
---- | --- | ---
-plot | ![time](src/plots/results/conv_slowdown.png) | ![err](src/plots/results/gen_err_growth.png)
-desc | The perfoamance here depends also on the model complexity. Optimization plays an important role as well, the learning rate scheduler gives a significant help. | On the other hand we see here that the model complexity allows to reach a lower test error. However, whatever the model complexity, on random labels it cannot reach better performance than random guessing on test data.
+<div style="display: flex; flex-direction: row;">
+  <img src="src/plots/results/curves.png" alt="learning" style="width:33%;">
+  &nbsp;
+  <img src="src/plots/results/conv_slowdown.png" alt="time" style="width:33%;">
+  &nbsp;
+  <img src="src/plots/results/gen_err_growth.png" alt="err" style="width:33%;">
+</div>
+
+- Random labels has a significant impact on the learning curve.
+- The perfomance here depends also on the model complexity. Optimization plays an important role as well, the learning rate scheduler gives a significant help.
+- On the other hand we see here that the model complexity allows to reach a lower test error. However, whatever the model complexity, on random labels it cannot reach better performance than random guessing on test data.
 
 </details>
 
@@ -144,7 +157,7 @@ desc | The perfoamance here depends also on the model complexity. Optimization p
 
 Train `MLP1` model on CIFAR10 with half-corrupted labels
 
-```
+```bash
 python main_fig1.py --config experiments/MLP1/MLP1_0.5_none.yaml --epochs 50
 Updated epochs from 20 to 50
 Checkpoint every 20
@@ -164,7 +177,7 @@ Training completed in 24.35s <> Current runtime: 40.25s
 Current training at epoch 50, step 450
 ```
 
-```
+```bash
 python main_fig1.py --config experiments/MLP1/MLP1_0.0_none.yaml --epochs 90
 Updated epochs from 70 to 90
 Checkpoint every 20
@@ -216,7 +229,7 @@ Experiments naming: Inception_bn`bn` (since in this experiments on the Inception
 - `seed: 42`
 - `weight_decay: 0.0`
 
-```
+```bash
 python main_fig2.py --config experiments/Inception/Inception_bnTrue.yaml
 ```
 
