@@ -5,8 +5,10 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import ExponentialLR
+import torch.optim.lr_scheduler as lr_scheduler
+from torch.optim.lr_scheduler import MultiStepLR, ExponentialLR
 import torch.backends.cudnn as cudnn
 
 from utils import N, LOG, update_yaml, AverageMeter
@@ -39,7 +41,7 @@ class TrainState:
                 "step": self.step, "runtime": self.runtime}
 
 
-def load_checkpoint(checkpoint_path: str, model, optimizer, scheduler):
+def load_checkpoint(checkpoint_path: str, model: nn.Module, optimizer: optim.Optimizer, scheduler: lr_scheduler.LRScheduler):
     """Load a model checkpoint to resume training"""
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(
@@ -83,20 +85,20 @@ def test(opts, model, loader):
     return losses.avg, accs.avg
 
 
-def save_checkpoint(trainer: TrainState, opts, fname=None):
+def save_checkpoint(trainstate: TrainState, opts, fname=None):
     """Save a model checkpoint to be resumed later"""
-    info = trainer.__dict__()
+    info = trainstate.__dict__()
     if not fname:
         fname = f"e_{info["epoch"]:03d}_{opts.experiment_name}.pt"
 
-    # save various stuffs from Trainer class
+    # save various stuffs from TrainState class
     output_dir = os.path.join(opts.checkpoint_dir, fname)
     torch.save(info, output_dir)
 
     # Update yaml file with checkpoint name
     update_yaml(opts, "resume_checkpoint", output_dir)
-    LOG.info(f"Saved checkpoint {fname} at epoch {info["epoch"]}, "
-             f"step {info["step"]}, runtime {info["runtime"]:.2f}s")
+    LOG.info(f"Saved checkpoint={fname} at epoch={info["epoch"]}, "
+             f"step={info["step"]}, runtime={info["runtime"]:.2f}s")
 
 
 def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=None):
@@ -105,7 +107,9 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
     criterion = torch.nn.CrossEntropyLoss()  # expects logits and labels
     optimizer = optim.SGD(model.parameters(), lr=opts.learning_rate,
                           momentum=opts.momentum, weight_decay=opts.weight_decay)
+
     scheduler = ExponentialLR(optimizer, gamma=opts.lr_decay)
+    # scheduler = MultiStepLR(optimizer, milestones=[100, 200], gamma=0.1)  # for MLPs
 
     start_epoch, step = 1, 0  # last training epoch and step
     start_time, prev_runtime = time.time(), 0.  # previous duration in case of resuming
@@ -116,27 +120,16 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
             resume_from, model, optimizer, scheduler)
         start_epoch += last_epoch
         step += last_step
-        LOG.info(f"Resuming training from epoch {start_epoch}, step {step},"
-                 f" previous runtime {prev_runtime:.2f}s")
+        LOG.info(f"Resuming training from epoch={start_epoch}, step={step},"
+                 f" runtime={prev_runtime:.2f}s"
+                 f"\nlearning_rate={scheduler.get_last_lr()}")
 
     # save training objects and info for checkpointing
-    trainer = TrainState(model, optimizer, scheduler,
+    trainstate = TrainState(model, optimizer, scheduler,
                          start_epoch, step, prev_runtime)
 
     for epoch in range(start_epoch, opts.num_epochs + 1):
         experiment.log_current_epoch(epoch)
-
-        if opts.figure1:
-            # check if zero-loss has been reached
-            if opts.interp_reached and not opts.curve:
-                ckp_runtime = prev_runtime + time.time() - start_time  # add duration of this run
-                trainer.update(model, optimizer, scheduler,
-                               epoch, step, ckp_runtime)
-                fname = f"e_{trainer.epoch:03d}_{opts.experiment_name}_interp.pt"
-                save_checkpoint(trainer, opts, fname)
-                LOG.info("Interpolation threshold reached, "
-                         "and no need to continue, breaking training...")
-                break
 
         step, train_loss, train_acc = train_epoch(
             opts, model, train_loader, val_loader, experiment, criterion,
@@ -147,22 +140,33 @@ def train_loop(opts, model, train_loader, val_loader, experiment, resume_from=No
             check_interp(opts, model, val_loader, experiment, start_time,
                          prev_runtime, epoch, train_loss, train_acc)
 
+            # check if zero-loss has been reached
+            if opts.interp_reached and not opts.curve:
+                ckp_runtime = prev_runtime + time.time() - start_time  # add duration of this run
+                trainstate.update(model, optimizer, scheduler,
+                               epoch, step, ckp_runtime)
+                fname = f"e_{trainstate.epoch:03d}_{opts.experiment_name}_interp.pt"
+                save_checkpoint(trainstate, opts, fname)
+                LOG.info("Interpolation threshold reached, "
+                         "and no need to continue, breaking training...")
+                break
+
         scheduler.step()  # update learning rate at each epoch
 
         if epoch % opts.checkpoint_every == 0 or epoch == opts.num_epochs:
             # save every checkpoint_every epochs and at the end
             ckp_runtime = prev_runtime + time.time() - start_time  # add duration of this run
-            trainer.update(model, optimizer, scheduler,
+            trainstate.update(model, optimizer, scheduler,
                            epoch, step, ckp_runtime)
-            save_checkpoint(trainer, opts)
+            save_checkpoint(trainstate, opts)
 
     # add this run duration to the previous one
     runtime = time.time() - start_time
     prev_runtime += runtime
-    LOG.info(f"Training completed in {runtime:.2f}s <> "
-             f"Current runtime: {prev_runtime:.2f}s")
+    LOG.info(f"Training completed with runtime={runtime:.2f}s, "
+             f"total_runtime={prev_runtime:.2f}s")
     experiment.log_metric("runtime", prev_runtime)
-    LOG.info(f"Current training at epoch {epoch}, step {step}")
+    LOG.info(f"Current training at epoch={epoch}, step={step}")
 
 
 def train_epoch(opts, model, train_loader, val_loader, experiment, criterion, optimizer, step, epoch):
@@ -232,12 +236,12 @@ def check_interp(opts, model, test_loader, experiment, start_time, prev_runtime,
                 # log test error and time to reach interpolation threshold
                 # this must be done just one time
                 zero_loss_time = time.time() - start_time + prev_runtime  # seconds
-                LOG.info(f"Zero-loss condition reached at epoch {epoch}"
-                         f" after {zero_loss_time:.2f}s")
+                LOG.info(f"Zero-loss condition reached at epoch={epoch}"
+                         f" with runtime={zero_loss_time:.2f}s")
 
                 # test error at interpolation treshold
                 _, test_acc = test(opts, model, test_loader)
-                LOG.info(f"Test accuracy: {100.*test_acc:.1f}%")
+                LOG.info(f"Test accuracy={100.*test_acc:.1f}%")
 
                 # log to comet_ml
                 experiment.log_metrics({"acc": test_acc, "error": 1. - test_acc,

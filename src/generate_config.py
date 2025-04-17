@@ -55,7 +55,7 @@ def generate_config(param_seq, base_config_path="config-f1.yaml"):
 
 
 # TODO: can be improved with **kwargs or something like that
-def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
+def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01, epochs=5):
     # Create output directory for YAML configuration files if it doesn't exist already
     os.makedirs(os.path.join("experiments", model_name), exist_ok=True)
     from itertools import product
@@ -67,14 +67,15 @@ def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01):
             "data_corruption_type": corrup,
             "learning_rate": lr,
             "figure1": True, "curve": False,
-            "num_epochs": 5,
+            "num_epochs": epochs,
+            "checkpoint_every": 10,
         })
     return param_seq
 
 
 if __name__ == "__main__":
 
-    param_seq = generate_dicts(model_name="MLP1", probs=PROBS, corrups=["none"])
+    # param_seq = generate_dicts(model_name="MLP1", probs=PROBS, corrups=["none"], epochs=20)
     # param_seq = generate_dicts(model_name="MLP1", probs=[0.0], corrups=["none"])
     # param_seq = generate_dicts(model_name="AlexNet", probs=PROBS, corrups=["none"])
     # param_seq = generate_dicts(model_name="Inception", probs=PROBS, corrups=["none"], lr=0.1)

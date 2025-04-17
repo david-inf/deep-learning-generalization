@@ -60,7 +60,7 @@ def main(opts, experiment):
     # Training
     update_yaml(opts, "figure1", True)
     with experiment.train():
-        LOG.info(f"Running {opts.experiment_name}")
+        LOG.info(f"Running experiment_name={opts.experiment_name}")
         train_loop(opts, model, train_loader, test_loader,
                       experiment, opts.resume_checkpoint)
 

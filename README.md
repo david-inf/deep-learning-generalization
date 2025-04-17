@@ -129,9 +129,15 @@ We should see that as the label corruption level increases, the time to reach th
 Test error at the interpolaton threshold against label corruption level for each network. Same as the previous experiment, just with another metric
 </details>
 
+<details open>
+<summary>Results</summary>
+
 Learning curves | Convergence slowdown | Generalization error growth
 --- | --- | ---
-plot | plot | plot
+plot | ![time](src/plots/results/conv_slowdown.png) | ![err](src/plots/results/gen_err_growth.png)
+desc | The perfoamance here depends also on the model complexity. Optimization plays an important role as well, the learning rate scheduler gives a significant help. | On the other hand we see here that the model complexity allows to reach a lower test error. However, whatever the model complexity, on random labels it cannot reach better performance than random guessing on test data.
+
+</details>
 
 <details>
 <summary>Logging</summary>

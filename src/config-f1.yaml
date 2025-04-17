@@ -20,7 +20,7 @@ comet_project: "deep-learning-generalization"
 experiment_name: null
 experiment_key: null
 checkpoint_every: null  # save the model every ... epochs
-log_every: 50  # compute metrics and log to comet_ml after ... batches
+log_every: 40  # compute metrics and log to comet_ml after ... batches
 resume_checkpoint: null
 
 num_epochs: 5

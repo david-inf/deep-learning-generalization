@@ -28,14 +28,14 @@ def parse_args():
         if new_epochs > opts.num_epochs:
             old_epochs = opts.num_epochs
             update_yaml(opts, "num_epochs", new_epochs)
-            LOG.info(f"Updated epochs from {old_epochs} to {opts.num_epochs}")
+            LOG.info(f"Updated new_epochs={opts.num_epochs} from old_epochs={old_epochs}")
     else:
-        LOG.info(f"Training until {opts.num_epochs} epochs")
+        LOG.info(f"Training until num_epochs={opts.num_epochs}")
 
     if opts.checkpoint_every is None:
         opts.checkpoint_every = opts.num_epochs
         LOG.info("Checkpoint at the end of training")
     else:
-        LOG.info(f"Checkpoint every {opts.checkpoint_every}")
+        LOG.info(f"Checkpoint checkpoint_every={opts.checkpoint_every}")
 
     return opts
