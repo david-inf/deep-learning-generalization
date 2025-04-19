@@ -84,6 +84,8 @@ if __name__ == "__main__":
     # param_seq = generate_dicts(model_name="Inception", probs=[0.0], corrups=CORRUPS, lr=0.1)
 
     # param_seq = generate_dicts(model_name="MLP3", probs=[0.0], corrups=["none"])
+    # param_seq = generate_dicts(model_name="WRN", probs=PROBS, corrups=["none"])
+    # param_seq = generate_dicts(model_name="WRN", probs=[0.0], corrups=CORRUPS)
 
     # Figure 2 dicts
     # param_seq = [
@@ -92,4 +94,5 @@ if __name__ == "__main__":
     # ]
 
     with launch_ipdb_on_exception():
-        generate_config(param_seq, base_config_path="experiments/config-f1.yaml")
+        # generate_config(param_seq, base_config_path="experiments/config-f1.yaml")
+        # generate_config(param_seq, base_config_path="experiments/config-f2.yaml")

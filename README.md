@@ -15,7 +15,7 @@ Go to the `src/` directory, then you will find the following programs
 
 - `checkpoints` and `experiments` will be automatically created for storing models' `.pt` and `.yaml` configuration files respectively
   - `config-f1.yaml` `config-f2.yaml` base configurations for experiments, use `generate_config.py` for custom configurations
-- `models/` directory with implemented models (detailed above)
+- `models/` directory with implemented models (detailed below)
 - `plots/` plots from data samples and results
 - `cifar10.py` wrapper of torchvision CIFAR10 that supports label and data corruption
 - `cmd_args.py` arguments for main programs
@@ -39,11 +39,13 @@ Supervised learning on CIFAR10, how far can we push neural nets generalization?
 
 You can find all the implemented models in the `src/models/` directory, go to the `src/` folder then use for example `python main_models.py --config experiments/MLP1/MLP1_0.0_none.yaml`
 
-Model | Params | `batch_size` | `learning_rate` | `momentum` | `lr_decay`
------ | ------ | ------------ | --------------- | ---------- | ---------
-`MLP1` | 1,209,866 | `128` | `0.01` | `0.9` | `0.95`
-`AlexNet` | 1,375,690 | `128` | `0.01` | `0.9` | `0.95`
-`Inception` | 1,651,114 | `128` | `0.1` | `0.9` | `0.95`
+| Model        | Params    | `batch_size` | `learning_rate` | `momentum` | scheduler                  |
+| ------------ | --------- | ------------ | --------------- | ---------- | -------------------------- |
+| `MLP1`       | 1,209,866 | `128`        | `0.01`          | `0.9`      | multi-step 0.1 at [100]    |
+| `MLP3`       | 1,735,178 | `128`        | `0.01`          | `0.9`      | multi-step 0.1 at [100]    |
+| `AlexNet`    | 1,375,690 | `128`        | `0.01`          | `0.9`      | decay with $\gamma$ `0.95` |
+| `Inception`  | 1,651,114 | `128`        | `0.1`           | `0.9`      | decay with $\gamma$ `0.95` |
+| `WideResNet` | 1,549,850 | `128`        | `0.01`          | `0.9`      | decay with $\gamma$ `0.95` |
 
 No weight decay, dropout or other forms of explicit regularization
 
@@ -58,13 +60,13 @@ No weight decay, dropout or other forms of explicit regularization
 - Experiments from figure 2: see the effect of batch norm on Inception architecture with original data
 
 <div style="display: flex; flex-direction: row;">
-  <img src="src/plots/figures/cifar10.png" alt="CIFAR10 original" width="24%">
+  <img src="src/plots/figures/cifar10.png" alt="CIFAR10 original" width="22%">
   &nbsp;
-  <img src="src/plots/figures/shuffled_pixels.png" alt="Shuffled pixels" width="24%">
+  <img src="src/plots/figures/shuffled_pixels.png" alt="Shuffled pixels" width="22%">
   &nbsp;
-  <img src="src/plots/figures/random_pixels.png" alt="Random pixels" width="24%">
+  <img src="src/plots/figures/random_pixels.png" alt="Random pixels" width="22%">
   &nbsp;
-  <img src="src/plots/figures/gaussian_pixels.png" alt="Gaussian pixels" width="24%">
+  <img src="src/plots/figures/gaussian_pixels.png" alt="Gaussian pixels" width="22%">
 </div>
 
 </details>
@@ -141,11 +143,11 @@ Test error at the interpolaton threshold against label corruption level for each
 <summary>Results</summary>
 
 <div style="display: flex; flex-direction: row;">
-  <img src="src/plots/results/curves.png" alt="learning" style="width:33%;">
+  <img src="src/plots/results/curves.png" alt="learning" style="width:31%;">
   &nbsp;
-  <img src="src/plots/results/conv_slowdown.png" alt="time" style="width:33%;">
+  <img src="src/plots/results/conv_slowdown.png" alt="time" style="width:31%;">
   &nbsp;
-  <img src="src/plots/results/gen_err_growth.png" alt="err" style="width:33%;">
+  <img src="src/plots/results/gen_err_growth.png" alt="err" style="width:31%;">
 </div>
 
 - Random labels has a significant impact on the learning curve.
@@ -237,13 +239,13 @@ python main_fig2.py --config experiments/Inception/Inception_bnTrue.yaml
 
 </details>
 
-Learning curves | Validation curves
--------------- | -----------
-plot | plot
+| Learning curves | Validation curves |
+| --------------- | ----------------- |
+| plot            | plot              |
 
 
 ## :ballot_box_with_check: Other results
 
-**Description** | **Result**
---------------- | -----------
-The importance of seed with randomization experiments: when no seed is provided, for example in case of resuming (two times here), the model confronts with new data, so it is like testing, except that the new data has an unknown distribution. When the seed is provided, the training continues smoothly in case of resuming. | ![](src/plots/figures/seed_noseed.jpeg)
+| **Description** | **Result** |
+| -------------------------------------------- | ------------------------- |
+| The importance of seed with randomization experiments: when no seed is provided, for example in case of resuming (two times here), the model confronts with new data, so it is like testing, except that the new data has an unknown distribution. When the seed is provided, the training continues smoothly in case of resuming. | ![](src/plots/figures/seed_noseed.jpeg) |

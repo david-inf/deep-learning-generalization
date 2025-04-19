@@ -33,8 +33,7 @@ def parse_args():
             old_epochs = opts.num_epochs
             update_yaml(opts, "num_epochs", new_epochs)
             LOG.info(f"Updated new_epochs={opts.num_epochs} from old_epochs={old_epochs}")
-    else:
-        LOG.info(f"Training until num_epochs={opts.num_epochs}")
+    LOG.info(f"Training until num_epochs={opts.num_epochs}")
 
     if opts.checkpoint_every is None:
         opts.checkpoint_every = opts.num_epochs

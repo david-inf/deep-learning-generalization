@@ -14,6 +14,7 @@ from cifar10 import CorruptedCIFAR10, MakeDataLoaders
 from models.mlp import MLP1, MLP3
 from models.inception import InceptionSmall
 from models.alexnet import AlexNetSmall
+from models.wideresnet import WideResNet
 from train import train_loop
 
 from utils import LOG, update_yaml, set_seeds, visualize
@@ -35,16 +36,18 @@ def get_loaders(opts):
 
 def get_model(opts):
     if opts.model_name == "MLP1":
-        model = MLP1()
+        model = MLP1()  # 1 hidden unit
     elif opts.model_name == "MLP3":
         model = MLP3()  # 3 hidden units
     elif opts.model_name in ("AlexNet", "AlexNetSmall"):
         model = AlexNetSmall()
     elif opts.model_name in ("Inception", "InceptionSmall"):
         model = InceptionSmall()
+    elif opts.model_name in ("WideResNet", "WRN"):
+        # (3*2)*num_blocks inner layers
+        model = WideResNet(num_blocks=2, widen_factor=3)
     else:
         raise ValueError(f"Unknown model {opts.model_name}")
-    # TODO: A recent implementation uses WideResNet
     model = model.to(opts.device)
     return model
 
@@ -62,7 +65,7 @@ def main(opts, experiment):
     with experiment.train():
         LOG.info(f"Running experiment_name={opts.experiment_name}")
         train_loop(opts, model, train_loader, test_loader,
-                      experiment, opts.resume_checkpoint)
+                   experiment, opts.resume_checkpoint)
 
 
 def view_model(opts):
@@ -97,7 +100,7 @@ if __name__ == "__main__":
                 # the key is set above
                 # the checkpoint is set with save_checkpoint in train_loop()
                 experiment = start(project_name=opts.comet_project,
-                                mode="get", experiment_key=opts.experiment_key,)
+                                   mode="get", experiment_key=opts.experiment_key,)
             main(opts, experiment)
             experiment.log_parameters(vars(opts))
             experiment.end()
