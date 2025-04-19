@@ -161,8 +161,8 @@ cython_debug/
 src/prove.py
 /src/plots/plots_data
 /src/checkpoints
-/src/experiments/AlexNet
-/src/experiments/Inception
+# /src/experiments/AlexNet
+# /src/experiments/Inception
 /src/experiments/MLP1
 /src/experiments/MLP3
 # /src/plots/figures
@@ -174,4 +174,4 @@ runs.ods
 src/models/net.py
 src/plot_data.py
 /src/experiments/WideResNet
-/src/experiments/WRN
+# /src/experiments/WRN
