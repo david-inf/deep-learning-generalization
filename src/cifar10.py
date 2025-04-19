@@ -226,7 +226,7 @@ class MakeDataLoaders:
             generator=generator, worker_init_fn=seed_worker
         )
         self.test_loader = DataLoader(
-            testset, batch_size=batch_size, shuffle=True,
+            testset, batch_size=batch_size,
             num_workers=num_workers, pin_memory=True,
             generator=generator, worker_init_fn=seed_worker
         )

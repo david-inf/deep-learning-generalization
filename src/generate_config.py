@@ -11,7 +11,7 @@ CORRUPS = ["shuff_pix", "rand_pix", "gauss_pix"]
 MODELS = ["Net", "MLP1", "MLP3", "AlexNet", "Inception"]
 
 
-def generate_config(param_seq, base_config_path="config-f1.yaml"):
+def generate_config(param_seq, base_config_path):
     # param_seq : list of dict
 
     # Load the base configuration to which apply the variations
@@ -44,6 +44,7 @@ def generate_config(param_seq, base_config_path="config-f1.yaml"):
         output_path = os.path.join(output_dir, fname)
         with open(output_path, "w") as f:
             yaml.dump(config, f)
+
         exp_count += 1
 
         print(f"Generated config: {output_path}")
@@ -55,7 +56,7 @@ def generate_config(param_seq, base_config_path="config-f1.yaml"):
 
 
 # TODO: can be improved with **kwargs or something like that
-def generate_dicts(model_name="Net", probs=PROBS, corrups=CORRUPS, lr=0.01, epochs=5):
+def generate_dicts(model_name, probs=PROBS, corrups=CORRUPS, lr=0.01, epochs=5):
     # Create output directory for YAML configuration files if it doesn't exist already
     os.makedirs(os.path.join("experiments", model_name), exist_ok=True)
     from itertools import product
@@ -82,6 +83,8 @@ if __name__ == "__main__":
     # param_seq = generate_dicts(model_name="Inception", probs=PROBS, corrups=["none"], lr=0.1)
     # param_seq = generate_dicts(model_name="Inception", probs=[0.0], corrups=CORRUPS, lr=0.1)
 
+    # param_seq = generate_dicts(model_name="MLP3", probs=[0.0], corrups=["none"])
+
     # Figure 2 dicts
     # param_seq = [
     #     {"model_name": "Inception", "figure1": False, "bn": True},
@@ -89,4 +92,4 @@ if __name__ == "__main__":
     # ]
 
     with launch_ipdb_on_exception():
-        generate_config(param_seq, base_config_path="config-f1.yaml")
+        generate_config(param_seq, base_config_path="experiments/config-f1.yaml")

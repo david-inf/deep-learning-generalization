@@ -13,6 +13,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--config", help="YAML configuration file")
 # parser.add_argument("--config", default="src/experiments/MLP1/MLP1_0.0_none.yaml")  # debug
 parser.add_argument("--epochs", help="Update epochs number")
+parser.add_argument("--view", action="store_true",
+                    help="Visualize architecture, no training")
 
 
 def parse_args():
@@ -20,7 +22,9 @@ def parse_args():
     with open(args.config, "r") as f:
         configs = yaml.safe_load(f)  # return dict
     opts = SimpleNamespace(**configs)
+
     opts.config = args.config  # add config file path for updates
+    opts.visualize = args.view  # inspect model
 
     # check number of epochs
     if args.epochs is not None:

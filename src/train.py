@@ -92,6 +92,7 @@ def save_checkpoint(trainstate: TrainState, opts, fname=None):
         fname = f"e_{info["epoch"]:03d}_{opts.experiment_name}.pt"
 
     # save various stuffs from TrainState class
+    os.makedirs(opts.checkpoint_dir, exist_ok=True)
     output_dir = os.path.join(opts.checkpoint_dir, fname)
     torch.save(info, output_dir)
 
@@ -241,7 +242,8 @@ def check_interp(opts, model, test_loader, experiment, start_time, prev_runtime,
 
                 # test error at interpolation treshold
                 _, test_acc = test(opts, model, test_loader)
-                LOG.info(f"Test accuracy={100.*test_acc:.1f}%")
+                LOG.info(f"Test: test_accuracy={100.*test_acc:.1f}% "
+                         f"<> test_error={100.*(1-test_acc):.1f}%")
 
                 # log to comet_ml
                 experiment.log_metrics({"acc": test_acc, "error": 1. - test_acc,

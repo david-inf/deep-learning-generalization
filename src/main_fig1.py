@@ -16,7 +16,7 @@ from models.inception import InceptionSmall
 from models.alexnet import AlexNetSmall
 from train import train_loop
 
-from utils import LOG, update_yaml, set_seeds
+from utils import LOG, update_yaml, set_seeds, visualize
 
 
 def get_loaders(opts):
@@ -65,26 +65,39 @@ def main(opts, experiment):
                       experiment, opts.resume_checkpoint)
 
 
+def view_model(opts):
+    # Get model
+    model = get_model(opts)
+    # Random data for images
+    input_data = torch.randn(128, 3, 28, 28).to(opts.device)
+    # Visualize model
+    visualize(model, f"{opts.model_name}", input_data)
+
+
 if __name__ == "__main__":
     from cmd_args import parse_args
     from ipdb import launch_ipdb_on_exception
     opts = parse_args()
 
     with launch_ipdb_on_exception():
-        # try resuming an experiment if experiment_key is provided
-        # otherwise start a new experiment
-        if not opts.experiment_key:
-            experiment = start(project_name=opts.comet_project)
-            experiment.set_name(opts.experiment_name)
-            # Update with experiment key for resuming
-            update_yaml(opts, "experiment_key", experiment.get_key())
-            LOG.info("Added experiment key for resuming")
+        if opts.visualize:
+            view_model(opts)  # no training
+
         else:
-            # Resume using provided experiment key and checkpoint
-            # the key is set above
-            # the checkpoint is set with save_checkpoint in train_loop()
-            experiment = start(project_name=opts.comet_project,
-                               mode="get", experiment_key=opts.experiment_key,)
-        main(opts, experiment)
-        experiment.log_parameters(vars(opts))
-        experiment.end()
+            # try resuming an experiment if experiment_key is provided
+            # otherwise start a new experiment
+            if not opts.experiment_key:
+                experiment = start(project_name=opts.comet_project)
+                experiment.set_name(opts.experiment_name)
+                # Update with experiment key for resuming
+                update_yaml(opts, "experiment_key", experiment.get_key())
+                LOG.info("Added experiment key for resuming")
+            else:
+                # Resume using provided experiment key and checkpoint
+                # the key is set above
+                # the checkpoint is set with save_checkpoint in train_loop()
+                experiment = start(project_name=opts.comet_project,
+                                mode="get", experiment_key=opts.experiment_key,)
+            main(opts, experiment)
+            experiment.log_parameters(vars(opts))
+            experiment.end()

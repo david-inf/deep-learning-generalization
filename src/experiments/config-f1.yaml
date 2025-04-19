@@ -31,6 +31,7 @@ data_corruption_type: "none"  # start with original data
 # flag to indicate if the interpolation was reached
 # crucial when resuming, to avoid overwriting the results
 interp_reached: false
+figure1: true
 
 # when resuming make sure to update:
 # num_epochs

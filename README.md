@@ -14,16 +14,18 @@ pip install -r requirements.txt
 Go to the `src/` directory, then you will find the following programs
 
 - `checkpoints` and `experiments` will be automatically created for storing models' `.pt` and `.yaml` configuration files respectively
+  - `config-f1.yaml` `config-f2.yaml` base configurations for experiments, use `generate_config.py` for custom configurations
 - `models/` directory with implemented models (detailed above)
 - `plots/` plots from data samples and results
+- `cifar10.py` wrapper of torchvision CIFAR10 that supports label and data corruption
+- `cmd_args.py` arguments for main programs
 - `main_fig1.py` `main_fig2.py` main script from which a single experiment can be launched using command line, different main for experiments from figure 1 and figure 2
-- `main_models.py` quick main program for inspecting models (architecture, number of parameters...) with same arguments as the main programs
 - `train.py` used in main script, contains training utilities
-- `cifar10.py` wrapper of torchvision CIFAR10 that supports label and data corruption using `ModifiedCIFAR10` class
 - `utils.py` more utilities
-- `config-f1.yaml` `config-f2.yaml` base configuration for experiments
 
-Use `python main-f1.py --help` and `python main-f2.py --help` to show program arguments
+Use `python main_fig1.py --help` and `python main_fig2.py --help` to show program arguments
+
+For inspecting models simply run `python main_fig1.py --config experiments/MLP1/MLP1_0.0_none.yaml --view` this will not train the model, instead for the given architecture will show parameters, layers...
 
 </details>
 
@@ -100,7 +102,7 @@ Experiments naming: `model_name`\_`label_corruption_prob`\_`data_corruption_type
 - `weight_decay: 0.0`
 
 ```bash
-python main_fig1 --config experiments/MLP1/MLP1_0.0_none.yaml
+python main_fig1 --config experiments/MLP1/MLP1_0.0_none.yaml --epochs 80
 ```
 
 </details>
