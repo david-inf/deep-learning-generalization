@@ -5,7 +5,7 @@ comet_project: deep-learning-generalization
 curve: false
 data_corruption_type: none
 device: cuda
-experiment_key: null
+experiment_key: 0d6baf37e8e945dba3224ebda95df48d
 experiment_name: WRN_1.0_none
 figure1: true
 interp_reached: false

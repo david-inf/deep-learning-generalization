@@ -5,7 +5,7 @@ comet_project: deep-learning-generalization
 curve: false
 data_corruption_type: shuff_pix
 device: cuda
-experiment_key: null
+experiment_key: e9e21d5a91d34791b8140aa1802d40d9
 experiment_name: Inception_0.0_shuff_pix
 figure1: true
 interp_reached: false

@@ -2,6 +2,7 @@ batch_size: 128
 checkpoint_dir: checkpoints/WRN
 checkpoint_every: 10
 comet_project: deep-learning-generalization
+config: experiments/WRN/WRN_0.2_none.yaml
 curve: false
 data_corruption_type: none
 device: cuda
@@ -19,4 +20,5 @@ num_epochs: 5
 num_workers: 2
 resume_checkpoint: null
 seed: 42
+visualize: false
 weight_decay: 0.0

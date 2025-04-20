@@ -143,11 +143,15 @@ Test error at the interpolaton threshold against label corruption level for each
 <summary>Results</summary>
 
 <div style="display: flex; flex-direction: row;">
-  <img src="src/plots/results/curves.png" alt="learning" style="width:31%;">
+  <img src="src/plots/results/wrn_curves.png" alt="learning" style="width:40%;">
   &nbsp;
-  <img src="src/plots/results/conv_slowdown.png" alt="time" style="width:31%;">
+  <img src="src/plots/results/icp_curves.png" alt="learning" style="width:40%;">
+</div>
+
+<div style="display: flex; flex-direction: row;">
+  <img src="src/plots/results/conv_slowdown.png" alt="time" style="width:40%;">
   &nbsp;
-  <img src="src/plots/results/gen_err_growth.png" alt="err" style="width:31%;">
+  <img src="src/plots/results/gen_err_growth.png" alt="err" style="width:40%;">
 </div>
 
 - Random labels has a significant impact on the learning curve.

@@ -175,3 +175,8 @@ src/models/net.py
 src/plot_data.py
 /src/experiments/WideResNet
 # /src/experiments/WRN
+src/plot_data2.py
+src/plot_curves.py
+src/plot_slowdown_err.py
+/src/experiments/AlexNet
+/src/experiments/WRN

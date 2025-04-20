@@ -5,7 +5,7 @@ comet_project: deep-learning-generalization
 curve: true
 data_corruption_type: shuff_pix
 device: cuda
-experiment_key: null
+experiment_key: b8599dc72ce84249a0fff8f1e37a732b
 experiment_name: AlexNet_0.0_shuff_pix
 figure1: true
 interp_reached: false

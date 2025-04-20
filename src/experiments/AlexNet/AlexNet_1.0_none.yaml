@@ -6,7 +6,7 @@ config: experiments/AlexNet/AlexNet_1.0_none.yaml
 curve: true
 data_corruption_type: none
 device: cuda
-experiment_key: null
+experiment_key: 8d81ea095d5c4543bae47d992b040981
 experiment_name: AlexNet_1.0_none
 figure1: true
 interp_reached: false
