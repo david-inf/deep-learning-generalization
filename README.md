@@ -7,7 +7,7 @@ A work on generalization in deep learning, let's try to reproduce CIFAR10 experi
 <details>
 <summary>Code organization</summary>
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
@@ -41,23 +41,23 @@ You can find all the implemented models in the `src/models/` directory, go to th
 
 | Model        | Params    | `batch_size` | `learning_rate` | `momentum` | scheduler                  |
 | ------------ | --------- | ------------ | --------------- | ---------- | -------------------------- |
-| `MLP1`       | 1,209,866 | `128`        | `0.01`          | `0.9`      | multi-step 0.1 at [100]    |
-| `MLP3`       | 1,735,178 | `128`        | `0.01`          | `0.9`      | multi-step 0.1 at [100]    |
-| `AlexNet`    | 1,375,690 | `128`        | `0.01`          | `0.9`      | decay with $\gamma$ `0.95` |
-| `Inception`  | 1,651,114 | `128`        | `0.1`           | `0.9`      | decay with $\gamma$ `0.95` |
-| `WideResNet` | 1,549,850 | `128`        | `0.01`          | `0.9`      | decay with $\gamma$ `0.95` |
+| `MLP1`       | 1,209,866 | `128`        | `0.01`          | `0.9`      | multi-step                 |
+| `MLP3`       | 1,735,178 | `128`        | `0.01`          | `0.9`      | exponential decay          |
+| `AlexNet`    | 1,375,690 | `128`        | `0.01`          | `0.9`      | exponential decay          |
+| `Inception`  | 1,651,114 | `128`        | `0.1`           | `0.9`      | exponential decay          |
+| `WideResNet` | 1,549,850 | `128`        | `0.01`          | `0.9`      | exponential decay          |
 
 No weight decay, dropout or other forms of explicit regularization
 
-`Inception` has also the flag for using the batch norm layer, default is `bn=True` this will be used for the experiments from figure 2
+`Inception` has also the flag for using the batch norm layer, default is `bn=True`, this will be used for the experiments from figure 2
 
 </details>
 
 <details open>
 <summary>Data</summary>
 
-- Experiments from figure 1: corrupt labels (non shown here) and data (in three different ways) then see if neural nets can still learn where no relationship between data and labels exists
-- Experiments from figure 2: see the effect of batch norm on Inception architecture with original data
+- Experiments from figure 1: corrupted labels (non shown here) and data (in three different ways) then see if neural nets can still learn where no relationship between data and labels exists, and data itself makes no sense
+- Experiments from figure 2: see the effect of batch norm (implicit regularization) on Inception architecture with original data
 
 <div style="display: flex; flex-direction: row;">
   <img src="src/plots/figures/cifar10.png" alt="CIFAR10 original" width="22%">
@@ -87,7 +87,7 @@ Experiments naming: `model_name`\_`label_corruption_prob`\_`data_corruption_type
 - `curve: false`
 - `data_corruption_type: none`
 - `device: cuda`
-- `experiment_key: ` (see main program)
+- `experiment_key: null` (see main program)
 - `experiment_name: MLP1_0.0_none`
 - `figure1: true`
 - `interp_reached: false`
@@ -99,7 +99,7 @@ Experiments naming: `model_name`\_`label_corruption_prob`\_`data_corruption_type
 - `momentum: 0.9`
 - `num_epochs: 10`
 - `num_workers: 2`
-- `resume_checkpoint: ` (see training loop)
+- `resume_checkpoint: null` (see training loop)
 - `seed: 42`
 - `weight_decay: 0.0`
 
@@ -120,7 +120,7 @@ Loss per training step varying randomization test
 - **Random pixels**: different pixels permutation for each train and test image
 - **Gaussian**: train and test images are generated according to a normal distribution with matching mean and std to the full dataset
 
-Fixed architecture (`AlexNet`) with varying randomization test
+Fixed architecture with varying randomization test
 
 </details>
 
@@ -142,17 +142,33 @@ Test error at the interpolaton threshold against label corruption level for each
 <details open>
 <summary>Results</summary>
 
+---
+
 <div style="display: flex; flex-direction: row;">
-  <img src="src/plots/results/wrn_curves.png" alt="learning" style="width:40%;">
+  <img src="src/plots/results/mlp1_curves.png" alt="learning" style="width:40%;">
   &nbsp;
-  <img src="src/plots/results/icp_curves.png" alt="learning" style="width:40%;">
+  <img src="src/plots/results/mlp3_curves.png" alt="learning" style="width:40%;">
 </div>
+
+---
+
+<div style="display: flex; flex-direction: row;">
+  <img src="src/plots/results/anet_curves.png" alt="learning" style="width:30%;">
+  &nbsp;
+  <img src="src/plots/results/wrn_curves.png" alt="learning" style="width:30%;">
+  &nbsp;
+  <img src="src/plots/results/icp_curves.png" alt="learning" style="width:30%;">
+</div>
+
+---
 
 <div style="display: flex; flex-direction: row;">
   <img src="src/plots/results/conv_slowdown.png" alt="time" style="width:40%;">
   &nbsp;
   <img src="src/plots/results/gen_err_growth.png" alt="err" style="width:40%;">
 </div>
+
+---
 
 - Random labels has a significant impact on the learning curve.
 - The perfomance here depends also on the model complexity. Optimization plays an important role as well, the learning rate scheduler gives a significant help.
@@ -238,18 +254,34 @@ Experiments naming: Inception_bn`bn` (since in this experiments on the Inception
 - `weight_decay: 0.0`
 
 ```bash
-python main_fig2.py --config experiments/Inception/Inception_bnTrue.yaml
+python main_fig2.py --config experiments/Inception/Inception_bnTrue.yaml --epochs 50
 ```
 
 </details>
 
-| Learning curves | Validation curves |
-| --------------- | ----------------- |
-| plot            | plot              |
+<details open>
+<summary>Results</summary>
+
+---
+
+<div style="display: flex; flex-direction: row;">
+  <img src="src/plots/results/icp_fig2_acc.png" alt="time" style="width:40%;">
+  &nbsp;
+  <img src="src/plots/results/icp_fig2_acc.png" alt="err" style="width:40%;">
+</div>
+
+---
+
+</details>
 
 
 ## :ballot_box_with_check: Other results
 
+<details>
+<summary>Other results</summary>
+
 | **Description** | **Result** |
 | -------------------------------------------- | ------------------------- |
 | The importance of seed with randomization experiments: when no seed is provided, for example in case of resuming (two times here), the model confronts with new data, so it is like testing, except that the new data has an unknown distribution. When the seed is provided, the training continues smoothly in case of resuming. | ![](src/plots/figures/seed_noseed.jpeg) |
+
+</details>

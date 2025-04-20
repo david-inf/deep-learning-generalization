@@ -180,3 +180,5 @@ src/plot_curves.py
 src/plot_slowdown_err.py
 /src/experiments/AlexNet
 /src/experiments/WRN
+src/plot_fig2.py
+/src/experiments/AlexNet

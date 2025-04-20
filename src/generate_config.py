@@ -77,13 +77,14 @@ def generate_dicts(model_name, probs=PROBS, corrups=CORRUPS, lr=0.01, epochs=5):
 if __name__ == "__main__":
 
     # param_seq = generate_dicts(model_name="MLP1", probs=PROBS, corrups=["none"], epochs=20)
-    # param_seq = generate_dicts(model_name="MLP1", probs=[0.0], corrups=["none"])
+    # param_seq = generate_dicts(model_name="MLP1", probs=[0.0], corrups=CORRUPS)
     # param_seq = generate_dicts(model_name="AlexNet", probs=PROBS, corrups=["none"])
     # param_seq = generate_dicts(model_name="AlexNet", probs=[0.0], corrups=CORRUPS)
     # param_seq = generate_dicts(model_name="Inception", probs=PROBS, corrups=["none"], lr=0.1)
     # param_seq = generate_dicts(model_name="Inception", probs=[0.0], corrups=CORRUPS, lr=0.1)
 
-    # param_seq = generate_dicts(model_name="MLP3", probs=[0.0], corrups=["none"])
+    # param_seq = generate_dicts(model_name="MLP3", probs=PROBS, corrups=["none"])
+    # param_seq = generate_dicts(model_name="MLP3", probs=[0.0], corrups=CORRUPS)
     # param_seq = generate_dicts(model_name="WRN", probs=PROBS, corrups=["none"])
     # param_seq = generate_dicts(model_name="WRN", probs=[0.0], corrups=CORRUPS)
 
