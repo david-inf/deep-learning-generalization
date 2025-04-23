@@ -152,17 +152,17 @@ Random pixels | Random pixels permutation for each train and test image | `data_
 Gaussian | Train and test images are generated according to a Gaussian distribution with matching mean and std to the full dataset | `data_corruption_type: gauss_pix`
 
 <p align="middle">
-  <img src="src/plots/results/mlp1_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/mlp1_curves.svg" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/mlp3_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/mlp3_curves.svg" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/anet_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/alexnet_curves.svg" alt="learning" style="width:30%;">
 </p>
 
 <p align="middle">
-  <img src="src/plots/results/wrn_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/wrn_curves.svg" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/icp_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/inception_curves.svg" alt="learning" style="width:30%;">
 </p>
 
 </details>
@@ -179,9 +179,9 @@ We should see that as the label corruption level increases, the time to reach th
 Conververgence slowdown, however, considers the model complexity, in fact we see that the Inception architecture followed by AlexNet takes far more time than other models. This, also, is influenced by the used hardware, i.e. other processes running at the same but it remains that the Inception architecture is the most expensive one in terms of computational cost.
 
 <p align="middle">
-  <img src="src/plots/results/conv_slowdown.png" alt="time" style="width:30%;">
+  <img src="src/plots/results/conv_slowdown.svg" alt="time" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/gen_err_growth.png" alt="err" style="width:30%;">
+  <img src="src/plots/results/gen_err_growth.svg" alt="err" style="width:30%;">
 </p>
 
 The complexity reflexes on the test error tough, being Inception the most expensive since the many layers, it is able to reach the lowest test error per each label corruption level (exception on random labels where each model cannot do better than random guessing). We should also note that the Inception is followed by the WideResNet, but with a far lower computational cost!
@@ -279,9 +279,9 @@ python main_fig2.py --config experiments/Inception/Inception_bnTrue.yaml --epoch
 We see the influence of the batch norm layer as a form of implicit regularization
 
 <p align="middle">
-  <img src="src/plots/results/icp_fig2_acc.png" alt="time" style="width:30%;">
+  <img src="src/plots/results/icp_fig2_acc.svg" alt="time" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/icp_fig2_loss.png" alt="err" style="width:30%;">
+  <img src="src/plots/results/icp_fig2_loss.svg" alt="err" style="width:30%;">
 </p>
 
 Batch norm allows Inception to reach the interpolation threshold earlier, and influences the generalization error as well. There isn't much evidence of a more stable training with batch norm.
@@ -308,19 +308,19 @@ The importance of seed with randomization experiments: when no seed is provided,
 Another perspective on the generalization error growth phenomenon for MLP1 and MLP3
 
 <p align="middle">
-  <img src="src/plots/results/mlp1_corrup_curves.png" alt="time" style="width:30%;">
+  <img src="src/plots/results/mlp1_corrup_curves.svg" alt="time" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/mlp3_corrup_curves.png" alt="err" style="width:30%;">
+  <img src="src/plots/results/mlp3_corrup_curves.svg" alt="err" style="width:30%;">
 </p>
 
 Another perspective on the generalization error growth for AlexNet, Inception and WRN
 
 <p align="middle">
-  <img src="src/plots/results/anet_corrup_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/alexnet_corrup_curves.svg" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/wrn_corrup_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/wrn_corrup_curves.svg" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/icp_corrup_curves.png" alt="learning" style="width:30%;">
+  <img src="src/plots/results/inception_corrup_curves.svg" alt="learning" style="width:30%;">
 </p>
 
 This confirms that as the label corruption level increases, the time required to reach interpolation threshold increses as well. So there is a relationship between convergence amd label corruption.
