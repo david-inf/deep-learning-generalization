@@ -143,24 +143,26 @@ We present the results for the three experiments aimed at investingating the eff
 
 We keep track of the cross-entropy loss per training step varying randomization test (random labels and data corruption). We do this experiments for each considered architecture.
 
-- **True labels**: original CIFAR10 dataset `label_corruption_prob=0.0`
-- **Random labels**: dataset with random labels both train and test, probability (fraction) specified by `label_corruption_prob=1.0`
-- **Shuffled pixels**: a fixed pixels permutation is applied to train and test images `data_corruption_type: shuff_pix`
-- **Random pixels**: different pixels permutation for each train and test image `data_corruption_type: rand_pix`
-- **Gaussian**: train and test images are generated according to a normal distribution with matching mean and std to the full dataset `data_corruption_type: gauss_pix`
+Test | Description | Argument
+--- | --- | ---
+True labels | Original CIFAR10 dataset | `label_corruption_prob=0.0`
+Random labels | Dataset with random labels both on train and test | `label_corruption_prob=1.0`
+Shuffled pixels | A fixed pixels permutation is applied to train and test images | `data_corruption_type: shuff_pix`
+Random pixels | Random pixels permutation for each train and test image | `data_corruption_type: rand_pix`
+Gaussian | Train and test images are generated according to a Gaussian distribution with matching mean and std to the full dataset | `data_corruption_type: gauss_pix`
 
 <p align="middle">
-  <img src="src/plots/results/mlp1_curves.png" alt="learning" style="width:22%;">
+  <img src="src/plots/results/mlp1_curves.png" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/mlp3_curves.png" alt="learning" style="width:22%;">
+  <img src="src/plots/results/mlp3_curves.png" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/anet_curves.png" alt="learning" style="width:22%;">
+  <img src="src/plots/results/anet_curves.png" alt="learning" style="width:30%;">
 </p>
 
 <p align="middle">
-  <img src="src/plots/results/wrn_curves.png" alt="learning" style="width:22%;">
+  <img src="src/plots/results/wrn_curves.png" alt="learning" style="width:30%;">
   &nbsp;
-  <img src="src/plots/results/icp_curves.png" alt="learning" style="width:22%;">
+  <img src="src/plots/results/icp_curves.png" alt="learning" style="width:30%;">
 </p>
 
 </details>

@@ -162,12 +162,12 @@ src/prove.py
 /src/plots/plots_data
 /src/checkpoints
 
-/src/experiments/AlexNet
-/src/experiments/Inception
-/src/experiments/MLP1
-/src/experiments/MLP3
-/src/experiments/WRN
-/src/experiments/WideResNet
+# /src/experiments/AlexNet
+# /src/experiments/Inception
+# /src/experiments/MLP1
+# /src/experiments/MLP3
+# /src/experiments/WRN
+# /src/experiments/WideResNet
 src/experiments/config-f1.yaml
 src/experiments/config-f2.yaml
 src/generate_config.py
@@ -186,3 +186,5 @@ src/plot_fig2.py
 /src/plots/scripts
 plot_curves.py
 plot_corrup_curves.py
+
+/src/logs
