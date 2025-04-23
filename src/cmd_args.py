@@ -17,15 +17,7 @@ parser.add_argument("--view", action="store_true",
                     help="Visualize architecture, no training")
 
 
-def parse_args():
-    args = parser.parse_args()
-    with open(args.config, "r") as f:
-        configs = yaml.safe_load(f)  # return dict
-    opts = SimpleNamespace(**configs)
-
-    opts.config = args.config  # add config file path for updates
-    opts.visualize = args.view  # inspect model
-
+def print_update_info(opts, args):
     # check number of epochs
     if args.epochs is not None:
         new_epochs = int(args.epochs)
@@ -35,10 +27,24 @@ def parse_args():
             LOG.info(f"Updated new_epochs={opts.num_epochs} from old_epochs={old_epochs}")
     LOG.info(f"Training until num_epochs={opts.num_epochs}")
 
+    # checkpointing
     if opts.checkpoint_every is None:
         opts.checkpoint_every = opts.num_epochs
         LOG.info("Checkpoint at the end of training")
     else:
         LOG.info(f"Checkpoint checkpoint_every={opts.checkpoint_every}")
+
+
+def parse_args():
+    args = parser.parse_args()
+    with open(args.config, "r") as f:
+        configs = yaml.safe_load(f)  # return dict
+    opts = SimpleNamespace(**configs)
+
+    opts.config = args.config  # add config file path for updates
+    opts.visualize = args.view  # inspect model
+
+    if not opts.visualize:
+        print_update_info(opts, args)
 
     return opts

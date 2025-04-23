@@ -96,8 +96,6 @@ def imshow(img, save=None):
     if save:
         plt.savefig(save)
 
-    # plt.show()
-
 
 def visualize(model, model_name, input_data):
     from torchinfo import summary
@@ -105,18 +103,21 @@ def visualize(model, model_name, input_data):
     out = model(input_data)
 
     console = Console()
-    console.print(f"Model {model_name}, computed output shape = {out.shape}")
+    console.print(f"Model model_name={model_name}, "
+                  f"input_shape={input_data.shape}, "
+                  f"output_shape={out.shape}")
 
     model_stats = summary(
         model,
         input_data=input_data,
         col_names=[
-            "input_size",
+            # "input_size",
             "output_size",
             "num_params",
-            # "params_percent",
-            # "kernel_size",
+            "params_percent",
+            "kernel_size",
             # "mult_adds",
+            "trainable",
         ],
         row_settings=("var_names",),
         col_width=18,

@@ -42,7 +42,10 @@ def get_model(opts):
     elif opts.model_name in ("AlexNet", "AlexNetSmall"):
         model = AlexNetSmall()
     elif opts.model_name in ("Inception", "InceptionSmall"):
-        model = InceptionSmall()
+        # just for using the visualize function
+        # normally for experiments from figure 2 use main_fig2.py
+        use_bn = opts.bn if hasattr(opts, "bn") else True
+        model = InceptionSmall(bn=use_bn)
     elif opts.model_name in ("WideResNet", "WRN"):
         # (3*2)*num_blocks inner layers
         model = WideResNet(num_blocks=2, widen_factor=3)

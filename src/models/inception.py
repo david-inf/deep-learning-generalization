@@ -26,11 +26,11 @@ class ConvModule(nn.Module):
     def __init__(self, out_channels, conv: nn.Conv2d, bn=True):
         super().__init__()
         self.conv = conv
-        if bn:
-            self.bn = nn.BatchNorm2d(out_channels, eps=0.001)
-        else:
-            self.bn = nn.Identity()
+        self.bn = nn.BatchNorm2d(out_channels, eps=0.001)
         self.relu = nn.ReLU()
+
+        if not bn:
+            self.bn = nn.Identity()
 
     def forward(self, x):
         x = self.conv(x)

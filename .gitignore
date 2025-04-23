@@ -161,24 +161,28 @@ cython_debug/
 src/prove.py
 /src/plots/plots_data
 /src/checkpoints
-# /src/experiments/AlexNet
-# /src/experiments/Inception
+
+/src/experiments/AlexNet
+/src/experiments/Inception
 /src/experiments/MLP1
 /src/experiments/MLP3
+/src/experiments/WRN
+/src/experiments/WideResNet
+src/experiments/config-f1.yaml
+src/experiments/config-f2.yaml
+src/generate_config.py
+
 # /src/plots/figures
-src/main-hpo.py
 src/run_exps.sh
-src/run_experiments.py
+
 runs.ods
 .~lock.runs.ods\#
+
 src/models/net.py
-src/plot_data.py
-/src/experiments/WideResNet
-# /src/experiments/WRN
-src/plot_data2.py
+
 src/plot_curves.py
 src/plot_slowdown_err.py
-/src/experiments/AlexNet
-/src/experiments/WRN
 src/plot_fig2.py
-/src/experiments/AlexNet
+/src/plots/scripts
+plot_curves.py
+plot_corrup_curves.py
